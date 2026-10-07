@@ -1,4 +1,6 @@
-# Awesome RSI — 按实际修改对象分类
+# Awesome RSI Classified — 按实际修改对象分类
+
+**中文** | [English](README.en.md)
 
 > 从“项目叫什么”转向“系统到底改了什么”：提示词、记忆、skills、hooks、工作流、agent 源码、任务程序，还是模型权重。
 
