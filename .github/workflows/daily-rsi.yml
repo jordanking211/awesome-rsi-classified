@@ -1,0 +1,70 @@
+name: Daily RSI discovery
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # 10:00 Asia/Shanghai; GitHub may delay scheduled runs.
+  workflow_dispatch:
+    inputs:
+      discovery_only:
+        description: 'Check discovery without model calls or repository edits'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-rsi-curation
+  cancel-in-progress: false
+
+jobs:
+  curate:
+    if: github.event_name == 'workflow_dispatch' || vars.RSI_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Run offline checks
+        run: python -m unittest discover -s tests -v
+      - name: Discover and curate at most one entry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RSI_API_KEY: ${{ secrets.RSI_API_KEY }}
+          RSI_API_BASE: ${{ vars.RSI_API_BASE }}
+          RSI_MODEL: ${{ vars.RSI_MODEL }}
+          DISCOVERY_ONLY: ${{ inputs.discovery_only || 'false' }}
+        run: python scripts/daily_rsi.py
+      - name: Commit verified bilingual addition
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- README.md README.en.md .github/rsi-state.json; then
+            echo 'No qualified addition; no commit.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md README.en.md .github/rsi-state.json
+          git commit -m 'docs: add daily source-checked RSI entry'
+          # Non-force push fails if the remote changed during research.
+          # Do not auto-merge/rebase an unreviewed concurrent README edit.
+          AUTH_HEADER="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH_HEADER" push origin "HEAD:${{ github.event.repository.default_branch }}"
+          echo "Published commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve public research report and draft on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rsi-research-${{ github.run_id }}
+          path: |
+            .rsi-run/
+          if-no-files-found: ignore
+          retention-days: 14

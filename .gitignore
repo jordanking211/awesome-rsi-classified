@@ -1,0 +1,3 @@
+.rsi-run/
+__pycache__/
+*.pyc
