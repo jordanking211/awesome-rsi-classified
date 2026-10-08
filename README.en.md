@@ -1,12 +1,36 @@
-# Awesome RSI Classified — Classified by What Actually Changes
+# Awesome RSI Classified — A Taxonomy of RSI and Self-Improving Agents
 
 [中文](README.md) | **English**
 
-> Look beyond project names and identify what each system actually changes: prompts, memory, skills, hooks, workflows, agent source, task programs, or model weights.
+> An index of Recursive Self-Improvement (RSI) and related self-improving agent methods, classified by what systems actually modify, with papers and source evidence.
 
-This README is for engineers developing open-source self-improving systems. Its central concern is **improving skills for new scenarios while checking that existing scenarios do not regress.**
+This maintained taxonomy and research index maps current self-improvement approaches, representative methods, and their boundaries. Its nine modification targets cover prompts, memory, skills, workflows, hooks, agent source code, task programs, model weights, and research artifacts. Engineering and regression-evaluation guidance is supplementary reading.
 
 Review date: 2026-10-07. Projects are organized by the objects they modify, using key source paths and original papers/official materials as classification evidence.
+
+## Reading guide
+
+- [Classification method and RSI scope](#taxonomy-method)
+- [Coverage and review methodology](#coverage)
+- [Nine modification targets and their meanings](#taxonomy)
+- [Method overview and evidence status](#overview)
+- [Which methods approach recursive self-improvement?](#recursive-boundary)
+- [Evaluation, verification, and risk resources](#evaluations)
+- [How to cite](#citation) · [Contributions and corrections](CONTRIBUTING.md)
+
+<a id="taxonomy-method"></a>
+## Classification method and RSI scope
+
+**This index first asks what a system actually changes.** This is a lens for comparing implementation mechanisms, not a universal definition of RSI, a capability ranking, or a claim of exhaustive coverage. The nine categories are not successive levels of capability.
+
+- **The unit of classification is a method and the inspected implementation path.** A framework may contain multiple optimizers; findings about one optimizer do not apply to the entire framework.
+- **The primary modification target determines placement.** When several assets change, retain one primary category and document the others in the entry. Distinguish training-time changes from runtime changes.
+- **Self-improvement does not automatically establish recursive self-improvement.** Prompt updates, skill accumulation, and task-program evolution are included as related techniques. Assessing recursion also requires checking whether the improver changes and whether the changed improver participates in later improvement. Self-modifying code alone does not demonstrate sustained capability gains.
+- **Classification evidence and effectiveness evidence are separate.** Source write-back locations can support a modification-target classification, but cannot alone establish performance gains, cross-task generalization, or absence of regressions.
+
+Feedback sources, optimization stages, weight training, and evaluation loops are additional comparison dimensions rather than the same classification axis. Consult each entry's inspection boundaries and original sources for specific conclusions.
+
+<a id="coverage"></a>
 
 ## Coverage and review methodology
 
@@ -17,6 +41,7 @@ Review date: 2026-10-07. Projects are organized by the objects they modify, usin
 - Entries without a confirmed author implementation retain paper-level classifications and are marked unverified. This describes the outcome of this review, rather than asserting that no code exists anywhere.
 - A method can modify several objects. Each is placed in one primary group by its main deployment/optimization artifact; additional objects remain documented. Training-time and runtime changes are recorded separately.
 
+<a id="taxonomy"></a>
 ## Engineering meaning of modification targets
 
 | Category | Assets that actually change | Common stored forms | Distinctions to preserve |
@@ -33,6 +58,7 @@ Review date: 2026-10-07. Projects are organized by the objects they modify, usin
 
 RSI means Recursive Self-Improvement here. Prompt optimization, skill accumulation, and automatic agent design are useful references, but they do not all demonstrate a recursive loop in which the optimizer itself becomes increasingly capable.
 
+<a id="overview"></a>
 ## Project overview
 
 The Category column uses exactly the same names as the table above and the detailed section headings below. Specific modified objects describes the actual changing assets. Projects may involve several objects; the primary artifact determines the category, while other changes appear in the remaining columns and project details.
@@ -680,6 +706,7 @@ The Category column uses exactly the same names as the table above and the detai
 - **Source / material findings**: research_pipeline.py iteratively updates problems/methods/experiments. The modified object is research content rather than the agent runtime framework source.
 - **Evidence status**: Key source paths statically inspected; no experiments were run.
 
+<a id="recursive-boundary"></a>
 ## Which methods approach recursive self-improvement?
 
 | Type | Examples | Interpretation |
@@ -691,6 +718,7 @@ The Category column uses exactly the same names as the table above and the detai
 | Experience or skills accumulate | ACE, ReasoningBank, Voyager, SkillWeaver | Persistent learning assets exist; this does not directly demonstrate growth in meta-improvement capability |
 | Task solutions or research content improve | FunSearch, AIDE, ResearchAgent | Task-side optimization; without editing its own searcher, it is not classified as strict RSI |
 
+<a id="evaluations"></a>
 ## Evaluation, verification, background, and risk entries
 
 These resources provide evaluation feedback, theoretical background, and risk analysis. Theories, surveys, and benchmarks do not themselves autonomously edit an agent; verifier training changes weights but usually acts as an external feedback component.
@@ -828,6 +856,15 @@ Finite tests can only support a conclusion that regression was not observed/supp
 ```
 
 Use separate fields for edited objects, trained components, and verification status so project names do not obscure differences between editing skills, editing hooks, and training an engineer.
+
+<a id="citation"></a>
+## How to cite
+
+When citing this index's taxonomy, include the project name, repository URL, commit SHA, access date, and a link to the relevant category or method. On a GitHub file page, press `y` to obtain a commit permalink. For a method or performance claim, also cite its linked original paper or official source.
+
+Suggested format: `Awesome RSI Classified, A Taxonomy of RSI and Self-Improving Agents, https://github.com/jordanking211/awesome-rsi-classified, commit <SHA>, accessed <YYYY-MM-DD>.`
+
+See [CHANGELOG.md](CHANGELOG.md) for editorial changes. A documentation revision date does not mean every project has been re-inspected.
 
 ## Usage and maintenance boundaries
 
