@@ -34,7 +34,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **60 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **61 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -106,6 +106,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | Self-Harness | [agent / harness / 优化器自身源码](#selfcode) | repo_baseline.py 暴露的提示词、skills、子 agent、运行时恢复等组件 | 公开说明保持模型和评测器固定 | 关键源码静态核查 |
 | Hyperagents | [agent / harness / 优化器自身源码](#selfcode) | 任务 agent 和 meta-agent 的代码库 | 所核查路径通过模型工具调用改代码 | 关键源码静态核查 |
 | Ouroboros | [agent / harness / 优化器自身源码](#selfcode) | agent 核心源码及经过 review 的后继版本 | 核查演化机制是代码/提交更新 | 关键源码静态核查 |
+| Reef | [agent / harness / 优化器自身源码](#selfcode) | 服务端持有的 harness 组合树条目：rules、skill、agent_command、code_extension、native_tool、native_hook、native_graph、config | harness 路线不训练模型；仓库另有需 GPU 的权重路线，由部署的 recipe 选定 | 关键源码静态核查 |
 | AlphaEvolve | [目标任务程序与算法](#program) | 问题求解算法/程序，例如数学构造和计算内核 | 原方法主要搜索程序；没有在此确认基础 LLM 训练 | 论文/说明；核心源码未核验 |
 | FunSearch | [目标任务程序与算法](#program) | 指定待演化函数的程序体 | 核查开源核心使用 LLM 采样与程序评分 | 关键源码静态核查 |
 | ShinkaEvolve | [目标任务程序与算法](#program) | 目标程序代码；可选演化 mutation/system prompt | 程序演化核心不等于基础 LLM 训练 | 关键源码静态核查 |
@@ -523,6 +524,15 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **源码／资料发现**：post_task_evolution.py 与 tools/git_evolution.py 管理演化与 reviewed-commit 权限边界；不能把 Web UI 的 evolution.js 当作核心自改进实现。
 - **证据状态**：关键源码静态核查；未运行实验。
 
+#### Reef
+
+[官方文档](https://reefinfra.ai/docs/) · [公开仓库](https://github.com/Human-Agent-Society/reef) · [核查入口：reef/harness/tree/mutations.py:L104](https://github.com/Human-Agent-Society/reef/blob/f08a41a664aeb8618f7b45f9aee5da54877bcf01/reef/harness/tree/mutations.py#L104) · [核查入口：reef/train/evaluation/evaluators.py:L98](https://github.com/Human-Agent-Society/reef/blob/f08a41a664aeb8618f7b45f9aee5da54877bcf01/reef/train/evaluation/evaluators.py#L98)
+
+- **主要修改**：服务端持有的 harness 组合树条目：rules、skill、agent_command、code_extension、native_tool、native_hook、native_graph、config。
+- **权重边界**：harness 路线只写树条目，不训练模型。仓库另有权重路线（recipes/sao，需 GPU 栈，不随 wheel 发布）；部署的 recipe 选定其中一条，不在同一轮同时改两者。
+- **源码／资料发现**：mutations.py 的 _apply_mutation 与 admit_mutations 以 create/update/remove 写回条目，加载或渲染失败时整批退回旧条目，并拒绝命中 RESERVED_ENTRY_IDS 的 reef 自身条目；evaluators.py 的 RegressionCheckMixin.decide 读取一个标量指标决定是否发布候选，拒绝时继续服务上一版本。改进器（提案器、反馈匹配、选择策略）由运维配置，不在可改对象内。
+- **证据状态**：关键源码静态核查（commit f08a41a6，核查日期 2026-10-09）；未运行实验。该项目没有论文，本条不提供性能证据。
+
 <a id="program"></a>
 
 ### 目标任务程序与算法
@@ -713,7 +723,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | --- | --- | --- |
 | 优化器代码本身成为优化对象 | STOP、Hyperagents | 最直接检查“改进器能否修改自己”的入口 |
 | agent 修改自身实现并验证后继 | DGM、SICA、Gödel Agent、Ouroboros | 有自身代码编辑面；是否可持续提升仍需实验 |
-| 用外部搜索器优化 harness | Meta-Harness、AFlow、GEPA | 搜索对象会变，搜索器不一定被递归改写 |
+| 用外部搜索器优化 harness | Meta-Harness、AFlow、GEPA、Reef | 搜索对象会变，搜索器不一定被递归改写 |
 | 学习执行编辑的模型 | Harness-R1、FlowReasoner、ScoreFlow | 工程师/生成器训练与目标 agent 的更新分开看 |
 | 积累经验或技能 | ACE、ReasoningBank、Voyager、SkillWeaver | 有持续学习资产；不直接证明元改进能力增长 |
 | 改进任务解或研究内容 | FunSearch、AIDE、ResearchAgent | 是任务侧优化；除非编辑自身搜索器，否则不按严格 RSI 判定 |

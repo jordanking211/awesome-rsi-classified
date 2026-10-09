@@ -34,7 +34,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **60 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **61 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -106,6 +106,7 @@ The Category column uses exactly the same names as the table above and the detai
 | Self-Harness | [Agent / harness / optimizer source code](#selfcode) | Prompts, skills, subagents, runtime recovery, and other components exposed by repo_baseline.py | The public description keeps the model and evaluator fixed | Key source paths statically inspected |
 | Hyperagents | [Agent / harness / optimizer source code](#selfcode) | Task-agent and meta-agent codebases | The inspected path edits code through model tool calls | Key source paths statically inspected |
 | Ouroboros | [Agent / harness / optimizer source code](#selfcode) | Agent core source and reviewed successor versions | The inspected evolution mechanism updates code/commits | Key source paths statically inspected |
+| Reef | [Agent / harness / optimizer source code](#selfcode) | Harness composition-tree entries held by the server: rules, skill, agent_command, code_extension, native_tool, native_hook, native_graph, config | The harness path trains no model; the repository also has a weight path that needs GPUs, selected by the deployment's recipe | Key source paths statically inspected |
 | AlphaEvolve | [Target-task programs and algorithms](#program) | Problem-solving algorithms/programs, such as mathematical constructions and compute kernels | The original method primarily searches programs; base LLM training was not confirmed here | Paper/documentation; core source unverified |
 | FunSearch | [Target-task programs and algorithms](#program) | The body of a designated function to evolve | The inspected open core uses LLM sampling and program scoring | Key source paths statically inspected |
 | ShinkaEvolve | [Target-task programs and algorithms](#program) | Target program code; optional evolution of mutation/system prompts | The program-evolution core is distinct from base LLM training | Key source paths statically inspected |
@@ -523,6 +524,15 @@ The Category column uses exactly the same names as the table above and the detai
 - **Source / material findings**: post_task_evolution.py and tools/git_evolution.py manage evolution and reviewed-commit permission boundaries. The Web UI's evolution.js should not be mistaken for the core self-improvement implementation.
 - **Evidence status**: Key source paths statically inspected; no experiments were run.
 
+#### Reef
+
+[Official documentation](https://reefinfra.ai/docs/) · [Public repository](https://github.com/Human-Agent-Society/reef) · [Inspected entry: reef/harness/tree/mutations.py:L104](https://github.com/Human-Agent-Society/reef/blob/f08a41a664aeb8618f7b45f9aee5da54877bcf01/reef/harness/tree/mutations.py#L104) · [Inspected entry: reef/train/evaluation/evaluators.py:L98](https://github.com/Human-Agent-Society/reef/blob/f08a41a664aeb8618f7b45f9aee5da54877bcf01/reef/train/evaluation/evaluators.py#L98)
+
+- **Primary modification**: Harness composition-tree entries held by the server: rules, skill, agent_command, code_extension, native_tool, native_hook, native_graph, config.
+- **Weight boundary**: The harness path writes tree entries only and trains no model. The repository also has a weight path (recipes/sao, which needs the GPU stack and does not ship in the wheel). The deployment's recipe selects one path; the two do not both change in one round.
+- **Source / material findings**: In mutations.py, _apply_mutation and admit_mutations write entries back with create/update/remove, return the whole batch to the old entries when a load or render fails, and refuse reef's own entries listed in RESERVED_ENTRY_IDS. In evaluators.py, RegressionCheckMixin.decide reads one scalar metric to decide whether to publish a candidate, and serving holds the previous version when it rejects. The improver (proposer, feedback matching, selection policy) is operator-configured and is not a modification target.
+- **Evidence status**: Key source paths statically inspected (commit f08a41a6, review date 2026-10-09); no experiments were run. The project has no paper, and this entry offers no performance evidence.
+
 <a id="program"></a>
 
 ### Target-task programs and algorithms
@@ -713,7 +723,7 @@ The Category column uses exactly the same names as the table above and the detai
 | --- | --- | --- |
 | Optimizer code becomes the optimization target | STOP, Hyperagents | Direct entry points for checking whether the improver can modify itself |
 | Agents modify their own implementation and validate successors | DGM, SICA, Gödel Agent, Ouroboros | Own-source editing surfaces exist; sustained improvement still requires experiments |
-| External search optimizes a harness | Meta-Harness, AFlow, GEPA | The search target changes; the searcher is not necessarily recursively rewritten |
+| External search optimizes a harness | Meta-Harness, AFlow, GEPA, Reef | The search target changes; the searcher is not necessarily recursively rewritten |
 | Models learn to perform edits | Harness-R1, FlowReasoner, ScoreFlow | Separate engineer/generator training from target-agent updates |
 | Experience or skills accumulate | ACE, ReasoningBank, Voyager, SkillWeaver | Persistent learning assets exist; this does not directly demonstrate growth in meta-improvement capability |
 | Task solutions or research content improve | FunSearch, AIDE, ResearchAgent | Task-side optimization; without editing its own searcher, it is not classified as strict RSI |
