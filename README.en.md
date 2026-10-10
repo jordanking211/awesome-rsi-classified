@@ -34,7 +34,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **60 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **61 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -88,6 +88,7 @@ The Category column uses exactly the same names as the table above and the detai
 | SkillWeaver | [Skill files, executable skills, and tool libraries](#skills) | Python/API skill functions for web interaction and a knowledge base | The inspected exploration/storage path generates code through inference | Key source paths statically inspected |
 | CORAL | [Skill files, executable skills, and tool libraries](#skills) | Research-attempt code, shared notes, and reusable skill directories | Inspected skill sharing does not imply LLM weight updates | Key source paths statically inspected |
 | gskill | [Skill files, executable skills, and tool libraries](#skills) | Skill-description text in best_skills.txt, injectable into prompts/skill files | GEPA searches text rather than fine-tuning the target coding agent | Key source paths statically inspected |
+| SkillHone | [Skill files, executable skills, and tool libraries](#skills) | Whole skill bundles and tests; additional decision history | External editor inference; no weight training in inspected paths | Key source paths statically inspected (2026-10-10) |
 | ADAS / Meta Agent Search | [Workflows, module composition, and graph/controller parameters](#workflow) | Implementation code for a new agent's forward() method | The inspected Meta Agent Search uses fixed models to generate code | Key source paths statically inspected |
 | AFlow | [Workflows, module composition, and graph/controller parameters](#workflow) | Workflow graph.py and node prompts | Workflow search does not fine-tune the target LLM | Key source paths statically inspected |
 | GPTSwarm | [Workflows, module composition, and graph/controller parameters](#workflow) | Node prompts and edge-connection probabilities/graph parameters | Graph-structure parameters receive gradient updates; these are distinct from base LLM weights | Key source paths statically inspected |
@@ -348,6 +349,18 @@ The Category column uses exactly the same names as the table above and the detai
 - **Weight boundary**: GEPA searches text rather than fine-tuning the target coding agent.
 - **Source / material findings**: The proposer in train_optimize_anything.py receives curr_skills and execution feedback and produces new skill candidates. It shares the GEPA source repository.
 - **Evidence status**: Key source paths statically inspected; no experiments were run.
+
+#### SkillHone
+
+[Paper](https://arxiv.org/abs/2606.08671) · [Author repository](https://github.com/Tencent/SkillHone)
+
+- **Primary modification**: Whole skill bundles: `SKILL.md`, scripts, references, and tests; local Issue/PR/Wiki decision records are additional memory. The primary target is skills, not the harness's own source.
+- **Weight boundary**: Inspected revision paths invoke external DeepSeek Harness inference and file editing; no target-model or editor-model weight training was found there.
+- **Source findings**: `runIsolatedBenchmarkRepair` creates commits in a temporary clone and fetches the candidate branch back. `evaluateCandidate` compares probe and optional `pr_val` scores. Runtime repair reruns Issue-linked tests before creating a local PR. Decision records retain prior choices; a saved policy controls local merging.
+- **Generalization and regression limits**: The paper reports results across research tasks; we did not reproduce them. Benchmark selection permits a **0.02** aggregate `pr_val` score drop from baseline; without that baseline, this check is absent. It does not enforce zero regressions per old task. Runtime repair checks linked tests only; an empty test list can pass.
+- **Dates and inspection**: Paper submitted 2026-06-07, v3 dated 2026-07-06. September code updates cover runtime feedback and auditing; the pinned revision's latest commit is dated 2026-09-20. Author implementation statically inspected on 2026-10-10; no project execution or experiments. This is not a newly published paper today.
+
+Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/benchmark.ts) · [src/core/harness.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/harness.ts) · [src/cli.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/cli.ts) · [src/core/tracker.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/tracker.ts)
 
 <a id="workflow"></a>
 

@@ -34,7 +34,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **60 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **61 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -88,6 +88,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | SkillWeaver | [技能文件、可执行技能与工具库](#skills) | 网页操作的 Python/API 技能函数与知识库 | 核查探索/存储路径通过推理生成代码 | 关键源码静态核查 |
 | CORAL | [技能文件、可执行技能与工具库](#skills) | 研究尝试代码、共享 notes 与可复用 skill 目录 | 核查技能共享不意味着 LLM 权重更新 | 关键源码静态核查 |
 | gskill | [技能文件、可执行技能与工具库](#skills) | 技能说明文本 best_skills.txt，可注入提示词/skill 文件 | GEPA 搜索文本，不是对目标 coding agent 微调 | 关键源码静态核查 |
+| SkillHone | [技能文件、可执行技能与工具库](#skills) | 完整技能包与测试；另保存决策历史 | 外部编辑器推理；核查路径不训练模型权重 | 关键源码静态核查（2026-10-10） |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -348,6 +349,18 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **权重边界**：GEPA 搜索文本，不是对目标 coding agent 微调。
 - **源码／资料发现**：train_optimize_anything.py 的 proposer 接收 curr_skills 与执行反馈，产生新的 skills 候选。与 GEPA 共用源码仓库。
 - **证据状态**：关键源码静态核查；未运行实验。
+
+#### SkillHone
+
+[论文](https://arxiv.org/abs/2606.08671) · [作者仓库](https://github.com/Tencent/SkillHone)
+
+- **主要修改**：完整技能包中的 `SKILL.md`、脚本、参考资料与测试；另保存本地 Issue、PR、Wiki 决策记录。主分类是技能，不是修改 harness 自身源码。
+- **权重边界**：所核查修订路径调用外部 DeepSeek Harness 进行推理和文件编辑；未见目标模型或编辑器模型的权重训练。
+- **源码发现**：`runIsolatedBenchmarkRepair` 在临时克隆中生成提交，再取回候选分支；`evaluateCandidate` 比较 probe 与可选的 `pr_val`。运行时修复路径在创建本地 PR 前重跑 Issue 关联测试。决策历史支持后续修订理解先前选择，发布由本地合并策略控制。
+- **泛化与回归边界**：论文报告多个研究任务上的效果，但本次未复现。benchmark 选择允许 `pr_val` 总分相对基线下降最多 **0.02**，且未配置该基线时不执行此检查；这不是逐旧任务零退化保证。运行时路径仅检查关联测试，空测试列表也可通过，不能视为完整旧场景回归。
+- **时效与核查**：论文首发 2026-06-07，v3 为 2026-07-06；代码于 9 月有运行反馈与审计相关更新，固定版本最近提交为 2026-09-20。2026-10-10 静态核查作者实现的关键路径，未执行项目或实验；不将旧论文描述为今日新发布。
+
+固定提交源码：[src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/benchmark.ts) · [src/core/harness.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/harness.ts) · [src/cli.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/cli.ts) · [src/core/tracker.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/tracker.ts)
 
 <a id="workflow"></a>
 
