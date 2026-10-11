@@ -34,7 +34,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **61 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **62 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -89,6 +89,7 @@ The Category column uses exactly the same names as the table above and the detai
 | CORAL | [Skill files, executable skills, and tool libraries](#skills) | Research-attempt code, shared notes, and reusable skill directories | Inspected skill sharing does not imply LLM weight updates | Key source paths statically inspected |
 | gskill | [Skill files, executable skills, and tool libraries](#skills) | Skill-description text in best_skills.txt, injectable into prompts/skill files | GEPA searches text rather than fine-tuning the target coding agent | Key source paths statically inspected |
 | SkillHone | [Skill files, executable skills, and tool libraries](#skills) | Whole skill bundles and tests; additional decision history | External editor inference; no weight training in inspected paths | Key source paths statically inspected (2026-10-10) |
+| skill-up / skill-upper | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md, supporting files, and evaluation cases | External agent editing; no weight training in inspected paths | Key source paths statically inspected (2026-10-11) |
 | ADAS / Meta Agent Search | [Workflows, module composition, and graph/controller parameters](#workflow) | Implementation code for a new agent's forward() method | The inspected Meta Agent Search uses fixed models to generate code | Key source paths statically inspected |
 | AFlow | [Workflows, module composition, and graph/controller parameters](#workflow) | Workflow graph.py and node prompts | Workflow search does not fine-tune the target LLM | Key source paths statically inspected |
 | GPTSwarm | [Workflows, module composition, and graph/controller parameters](#workflow) | Node prompts and edge-connection probabilities/graph parameters | Graph-structure parameters receive gradient updates; these are distinct from base LLM weights | Key source paths statically inspected |
@@ -361,6 +362,18 @@ The Category column uses exactly the same names as the table above and the detai
 - **Dates and inspection**: Paper submitted 2026-06-07, v3 dated 2026-07-06. September code updates cover runtime feedback and auditing; the pinned revision's latest commit is dated 2026-09-20. Author implementation statically inspected on 2026-10-10; no project execution or experiments. This is not a newly published paper today.
 
 Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/benchmark.ts) · [src/core/harness.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/harness.ts) · [src/cli.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/cli.ts) · [src/core/tracker.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/tracker.ts)
+
+#### skill-up / skill-upper
+
+[Official repository / 官方仓库](https://github.com/alibaba/skill-up)
+
+- **Primary modification**: `skill-upper` directs an external agent to edit the target `SKILL.md`, supporting files, and evaluation cases; the `skill-up` CLI executes and grades. This entry covers their combined skill-improvement workflow, not CLI self-rewriting.
+- **Source findings**: Step 8 instructs evidence-based repairs, additional coverage, rerunning failures and then the full suite, without weakening valid assertions. `evaluator.go` runs cases and judges. The default multi-judge policy in `aggregation.go` is `all_required`: every member must pass; errors and skips are not successes.
+- **Weight boundary**: Inspected paths use external-agent inference, file edits, and evaluation calls. No training entry point for target, editor, or judge model weights was found there.
+- **Generalization and regression evidence**: Public self-evals include script checks preserving an existing case byte-for-byte and Chinese expected literals, useful against changing tests merely to pass. However, evolution is instruction-driven; this does not establish an enforced, independent old-task release gate. Cross-scenario generalization experiments were not verified; we did not execute the project.
+- **Dates and inspection**: An official engineering project, sourced to its repository documentation. The pinned 2026-10-10 commit protects regression semantics; an earlier commit that day adds multiple judges over one agent run. Key source inspected on 2026-10-11; this workflow is not presented as demonstrated strict RSI.
+
+[skills/skill-upper/SKILL.md](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/SKILL.md) · [internal/evaluator/evaluator.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/evaluator/evaluator.go) · [internal/judge/aggregation.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/judge/aggregation.go) · [skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh)
 
 <a id="workflow"></a>
 

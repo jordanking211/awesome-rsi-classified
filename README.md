@@ -34,7 +34,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **61 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **62 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -89,6 +89,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | CORAL | [技能文件、可执行技能与工具库](#skills) | 研究尝试代码、共享 notes 与可复用 skill 目录 | 核查技能共享不意味着 LLM 权重更新 | 关键源码静态核查 |
 | gskill | [技能文件、可执行技能与工具库](#skills) | 技能说明文本 best_skills.txt，可注入提示词/skill 文件 | GEPA 搜索文本，不是对目标 coding agent 微调 | 关键源码静态核查 |
 | SkillHone | [技能文件、可执行技能与工具库](#skills) | 完整技能包与测试；另保存决策历史 | 外部编辑器推理；核查路径不训练模型权重 | 关键源码静态核查（2026-10-10） |
+| skill-up / skill-upper | [技能文件、可执行技能与工具库](#skills) | SKILL.md、支持文件与评测用例 | 外部 Agent 编辑；所核查路径不训练模型权重 | 关键源码静态核查 (2026-10-11) |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -361,6 +362,18 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **时效与核查**：论文首发 2026-06-07，v3 为 2026-07-06；代码于 9 月有运行反馈与审计相关更新，固定版本最近提交为 2026-09-20。2026-10-10 静态核查作者实现的关键路径，未执行项目或实验；不将旧论文描述为今日新发布。
 
 固定提交源码：[src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/benchmark.ts) · [src/core/harness.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/harness.ts) · [src/cli.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/cli.ts) · [src/core/tracker.ts](https://github.com/Tencent/SkillHone/blob/c613aa99193079383c7a3ad81df1df005685e6af/src/core/tracker.ts)
+
+#### skill-up / skill-upper
+
+[Official repository / 官方仓库](https://github.com/alibaba/skill-up)
+
+- **主要修改**：`skill-upper` 的改进流程指导外部 Agent 修改目标 `SKILL.md`、支持文件和评测用例；`skill-up` CLI 负责执行与判分。这里收录的是二者组合的技能改进流程，不是 CLI 自动重写自身。
+- **源码发现**：`SKILL.md` Step 8 要求根据失败证据修复技能、补充覆盖，先重跑失败用例再跑全套，且不得削弱有效断言。`evaluator.go` 执行用例与 judge；`aggregation.go` 的多 judge 默认策略为 `all_required`，成员必须全部通过，错误或跳过不算成功。
+- **权重边界**：检查到的是外部 Agent 推理、文件编辑与评测调用；未见目标模型、编辑器或 judge 的权重训练入口。
+- **泛化与回归证据**：公开自测含保留旧用例字节内容、保留中文预期字面量的脚本检查，可参考其防止“修改测试来过关”的设计。但改进步骤由技能指令驱动，不能据此推断有强制、独立的旧任务发布门槛；未核实跨场景泛化实验，也未运行本项目。
+- **时效与核查**：官方工程项目，以仓库说明为原始来源；固定提交为 2026-10-10 的回归语义保护更新，同日此前提交加入单次 Agent 运行的多 judge 评测。2026-10-11 静态核查关键源码；不将此工程流程表述为已验证的严格递归自改进。
+
+[skills/skill-upper/SKILL.md](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/SKILL.md) · [internal/evaluator/evaluator.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/evaluator/evaluator.go) · [internal/judge/aggregation.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/judge/aggregation.go) · [skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh)
 
 <a id="workflow"></a>
 
