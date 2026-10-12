@@ -34,7 +34,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **62 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **63 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -90,6 +90,7 @@ The Category column uses exactly the same names as the table above and the detai
 | gskill | [Skill files, executable skills, and tool libraries](#skills) | Skill-description text in best_skills.txt, injectable into prompts/skill files | GEPA searches text rather than fine-tuning the target coding agent | Key source paths statically inspected |
 | SkillHone | [Skill files, executable skills, and tool libraries](#skills) | Whole skill bundles and tests; additional decision history | External editor inference; no weight training in inspected paths | Key source paths statically inspected (2026-10-10) |
 | skill-up / skill-upper | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md, supporting files, and evaluation cases | External agent editing; no weight training in inspected paths | Key source paths statically inspected (2026-10-11) |
+| SkillAdam | [Skill files, executable skills, and tool libraries](#skills) | One SKILL.md; auxiliary optimization memory and edit budget | Inference edits text; not Adam training of model weights | Key source paths statically inspected (2026-10-12) |
 | ADAS / Meta Agent Search | [Workflows, module composition, and graph/controller parameters](#workflow) | Implementation code for a new agent's forward() method | The inspected Meta Agent Search uses fixed models to generate code | Key source paths statically inspected |
 | AFlow | [Workflows, module composition, and graph/controller parameters](#workflow) | Workflow graph.py and node prompts | Workflow search does not fine-tune the target LLM | Key source paths statically inspected |
 | GPTSwarm | [Workflows, module composition, and graph/controller parameters](#workflow) | Node prompts and edge-connection probabilities/graph parameters | Graph-structure parameters receive gradient updates; these are distinct from base LLM weights | Key source paths statically inspected |
@@ -374,6 +375,18 @@ Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob
 - **Dates and inspection**: An official engineering project, sourced to its repository documentation. The pinned 2026-10-10 commit protects regression semantics; an earlier commit that day adds multiple judges over one agent run. Key source inspected on 2026-10-11; this workflow is not presented as demonstrated strict RSI.
 
 [skills/skill-upper/SKILL.md](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/SKILL.md) · [internal/evaluator/evaluator.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/evaluator/evaluator.go) · [internal/judge/aggregation.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/judge/aggregation.go) · [skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh)
+
+#### SkillAdam
+
+[Paper / 论文](https://arxiv.org/abs/2609.08944) · [Author repository / 作者仓库](https://github.com/ruc-datalab/SkillAdam)
+
+- **Primary modification**: The inspected product path optimizes one existing `SKILL.md`; optimization memory and edit budgets are auxiliary state, not model parameters.
+- **Source findings**: `workflow.py` validates the exact selected candidate against a frozen evaluation plan before accepting current files. `service.py::_sync_accepted_skill` checks source digests and replaces the file atomically, rejecting external edits. `edit_budget.py` shrinks the hunk budget using variance of per-case gains and its EMA.
+- **Weight boundary**: Inspected paths propose text changes through inference, without target/editor weight training. Adam is an analogy for optimization memory and update magnitude.
+- **Generalization and regression limits**: `AcceptanceGate` requires at least one strict metric improvement and all configured non-regression rules. Those rules may be empty; configured metric checks do not ensure every old task avoids regression. The paper reports seven benchmarks; we did not reproduce results or infer regression-free transfer.
+- **Dates and inspection**: Paper submitted 2026-09-08. A substantive September 26 commit restores OfficeQA/LMB adaptive edit budgets; pinned HEAD later that day removes historical result metadata. Key source statically inspected on 2026-10-12; distinguish product paths from benchmark adapters. No experiments run.
+
+[skilladam/core/acceptance_gate.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/acceptance_gate.py) · [skilladam/core/edit_budget.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/edit_budget.py) · [skilladam/product/workflow.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/workflow.py) · [skilladam/product/service.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/service.py)
 
 <a id="workflow"></a>
 

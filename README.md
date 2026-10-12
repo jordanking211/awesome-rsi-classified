@@ -34,7 +34,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **62 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **63 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -90,6 +90,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | gskill | [技能文件、可执行技能与工具库](#skills) | 技能说明文本 best_skills.txt，可注入提示词/skill 文件 | GEPA 搜索文本，不是对目标 coding agent 微调 | 关键源码静态核查 |
 | SkillHone | [技能文件、可执行技能与工具库](#skills) | 完整技能包与测试；另保存决策历史 | 外部编辑器推理；核查路径不训练模型权重 | 关键源码静态核查（2026-10-10） |
 | skill-up / skill-upper | [技能文件、可执行技能与工具库](#skills) | SKILL.md、支持文件与评测用例 | 外部 Agent 编辑；所核查路径不训练模型权重 | 关键源码静态核查 (2026-10-11) |
+| SkillAdam | [技能文件、可执行技能与工具库](#skills) | 单个 SKILL.md；另维护优化记忆和修订预算 | 模型推理编辑文本；不是 Adam 训练模型权重 | 关键源码静态核查 (2026-10-12) |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -374,6 +375,18 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **时效与核查**：官方工程项目，以仓库说明为原始来源；固定提交为 2026-10-10 的回归语义保护更新，同日此前提交加入单次 Agent 运行的多 judge 评测。2026-10-11 静态核查关键源码；不将此工程流程表述为已验证的严格递归自改进。
 
 [skills/skill-upper/SKILL.md](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/SKILL.md) · [internal/evaluator/evaluator.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/evaluator/evaluator.go) · [internal/judge/aggregation.go](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/internal/judge/aggregation.go) · [skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh](https://github.com/alibaba/skill-up/blob/12deb53a19147704e3f547602962edf6d22e0c54/skills/skill-upper/evals/fixtures/scripts/assert-localized-regressions.sh)
+
+#### SkillAdam
+
+[Paper / 论文](https://arxiv.org/abs/2609.08944) · [Author repository / 作者仓库](https://github.com/ruc-datalab/SkillAdam)
+
+- **主要修改**：核查的产品路径优化一个既有 `SKILL.md`；优化记忆与修订预算是辅助状态，不是模型参数。
+- **源码发现**：`workflow.py` 对选定补丁的确切候选及冻结评测计划做验证，门槛通过后更新当前文件；`service.py::_sync_accepted_skill` 检查源文件摘要并原子替换，发现外部编辑则拒绝覆盖。`edit_budget.py` 根据逐用例改进的方差及其 EMA 收缩补丁块预算。
+- **权重边界**：所核查流程通过模型推理提出文本修改，没有目标模型或编辑器的权重训练；Adam 是对优化记忆与更新幅度的类比。
+- **泛化与回归边界**：`AcceptanceGate` 要求至少一项指标严格改善，并满足所有配置的非退化规则；这些保护规则可为空，且判据比较配置指标，不自动保证每个旧任务不退化。论文报告七个基准上的效果，本次未复现，也不将其解释为跨场景零退化保证。
+- **时效与核查**：论文首发 2026-09-08；官方仓库 9 月 26 日有恢复 OfficeQA/LMB 自适应修订预算的实质更新，所固定 HEAD 同日清理历史结果元数据。2026-10-12 静态核查关键源码；产品路径与各基准适配器分开看，未执行实验。
+
+[skilladam/core/acceptance_gate.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/acceptance_gate.py) · [skilladam/core/edit_budget.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/edit_budget.py) · [skilladam/product/workflow.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/workflow.py) · [skilladam/product/service.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/service.py)
 
 <a id="workflow"></a>
 
