@@ -34,7 +34,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **63 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **64 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -91,6 +91,7 @@ The Category column uses exactly the same names as the table above and the detai
 | SkillHone | [Skill files, executable skills, and tool libraries](#skills) | Whole skill bundles and tests; additional decision history | External editor inference; no weight training in inspected paths | Key source paths statically inspected (2026-10-10) |
 | skill-up / skill-upper | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md, supporting files, and evaluation cases | External agent editing; no weight training in inspected paths | Key source paths statically inspected (2026-10-11) |
 | SkillAdam | [Skill files, executable skills, and tool libraries](#skills) | One SKILL.md; auxiliary optimization memory and edit budget | Inference edits text; not Adam training of model weights | Key source paths statically inspected (2026-10-12) |
+| EviSkill | [Skill files, executable skills, and tool libraries](#skills) | Markdown skills; auxiliary evidence cards and provisional edits | Inference edits skills; action/editor weights unchanged | Key source statically inspected; license unconfirmed (2026-10-14) |
 | ADAS / Meta Agent Search | [Workflows, module composition, and graph/controller parameters](#workflow) | Implementation code for a new agent's forward() method | The inspected Meta Agent Search uses fixed models to generate code | Key source paths statically inspected |
 | AFlow | [Workflows, module composition, and graph/controller parameters](#workflow) | Workflow graph.py and node prompts | Workflow search does not fine-tune the target LLM | Key source paths statically inspected |
 | GPTSwarm | [Workflows, module composition, and graph/controller parameters](#workflow) | Node prompts and edge-connection probabilities/graph parameters | Graph-structure parameters receive gradient updates; these are distinct from base LLM weights | Key source paths statically inspected |
@@ -387,6 +388,18 @@ Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob
 - **Dates and inspection**: Paper submitted 2026-09-08. A substantive September 26 commit restores OfficeQA/LMB adaptive edit budgets; pinned HEAD later that day removes historical result metadata. Key source statically inspected on 2026-10-12; distinguish product paths from benchmark adapters. No experiments run.
 
 [skilladam/core/acceptance_gate.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/acceptance_gate.py) · [skilladam/core/edit_budget.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/edit_budget.py) · [skilladam/product/workflow.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/workflow.py) · [skilladam/product/service.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/service.py)
+
+#### EviSkill
+
+[Paper / 论文](https://arxiv.org/abs/2610.05030) · [Author repository / 作者仓库](https://github.com/Zhouyaner/EviSkill)
+
+- **Primary target: Skill files, executable skills, and tool libraries**, specifically Markdown skill text, with auxiliary evidence cards and a provisional-edit ledger. `MarkdownSkillBank.format_for_prompt()` supplies the document to the action model; `_apply_markdown_edits()` applies text changes. The inspected loop does not rewrite hooks or harness source.
+- **Evolution and model training:** trajectories produce replayable evidence; models propose evidence-linked edits, re-execute relevant contexts, and judge acceptance, reflection, or rejection. Reflected edits are verified again. Training epochs here evolve skills through inference calls to action and editor/judge models; their weights are not updated.
+- **Persistence and regression control:** `working_skill.md` may include provisional edits; validation acceptance updates `evolving_skill.md`. After global rejection, some replay-supported edits remain available for later exploration without becoming the final validated version. `_selection_gate()` compares aggregate validation success rates: ALFWorld/AppWorld reject ties by default, other paths may use score/step tiebreaks, and configuration can allow ties or disable the gate. Aggregate non-regression does not guarantee preservation of every old task or performance on new distributions.
+- **Engineering value and boundaries:** reusable ideas include traceability from edits to execution evidence, replay and validated revisions, plus separation of exploratory and stable skills. The paper reports ALFWorld, AppWorld and ScienceWorld experiments; this review only inspected source, did not run or reproduce experiments, and execution requires external environments/data. The paper was submitted on 2026-10-04; the inspected revision includes substantive replay-verification/cross-epoch tracking changes on 2026-10-13, not an established initial code-release date. The paper links this author repository; no license file was found in the inspected revision, so confirm reuse permission.
+- **Source inspection (2026-10-14, pinned commit):**
+
+[evidence_pipeline.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/evidence_pipeline.py) · [working_branch.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/working_branch.py) · [skill_markdown.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/skill_markdown.py)
 
 <a id="workflow"></a>
 

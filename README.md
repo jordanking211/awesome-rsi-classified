@@ -34,7 +34,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **63 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **64 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -91,6 +91,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | SkillHone | [技能文件、可执行技能与工具库](#skills) | 完整技能包与测试；另保存决策历史 | 外部编辑器推理；核查路径不训练模型权重 | 关键源码静态核查（2026-10-10） |
 | skill-up / skill-upper | [技能文件、可执行技能与工具库](#skills) | SKILL.md、支持文件与评测用例 | 外部 Agent 编辑；所核查路径不训练模型权重 | 关键源码静态核查 (2026-10-11) |
 | SkillAdam | [技能文件、可执行技能与工具库](#skills) | 单个 SKILL.md；另维护优化记忆和修订预算 | 模型推理编辑文本；不是 Adam 训练模型权重 | 关键源码静态核查 (2026-10-12) |
+| EviSkill | [技能文件、可执行技能与工具库](#skills) | Markdown 技能；辅助证据卡与暂存编辑账本 | 推理编辑技能；行动与编辑模型均不更新权重 | 关键源码静态核查；许可证未确认 (2026-10-14) |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -387,6 +388,18 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **时效与核查**：论文首发 2026-09-08；官方仓库 9 月 26 日有恢复 OfficeQA/LMB 自适应修订预算的实质更新，所固定 HEAD 同日清理历史结果元数据。2026-10-12 静态核查关键源码；产品路径与各基准适配器分开看，未执行实验。
 
 [skilladam/core/acceptance_gate.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/acceptance_gate.py) · [skilladam/core/edit_budget.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/core/edit_budget.py) · [skilladam/product/workflow.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/workflow.py) · [skilladam/product/service.py](https://github.com/ruc-datalab/SkillAdam/blob/b6c9640f7a9e0d5e3a500c25bc4e6369eeca78f1/skilladam/product/service.py)
+
+#### EviSkill
+
+[Paper / 论文](https://arxiv.org/abs/2610.05030) · [Author repository / 作者仓库](https://github.com/Zhouyaner/EviSkill)
+
+- **主要修改对象：技能文件、可执行技能与工具库**，具体是 Markdown 技能文本；辅助维护证据卡片与暂存编辑账本。`MarkdownSkillBank.format_for_prompt()` 将文档提供给行动模型，`_apply_markdown_edits()` 应用文本修改；不是自动改 hooks 或 harness 源码。
+- **演化与模型训练：**行动轨迹产生可回放证据，模型提出关联证据的编辑，在对应上下文重执行并判断接受、反思或拒绝；反思后的编辑再次验证。这里的训练轮次是技能演化，行动模型和编辑/裁判模型均通过推理调用，不更新其权重。
+- **写回与回归控制：**`working_skill.md` 可包含暂存修订；验证通过才更新 `evolving_skill.md`。全局拒绝后，部分经回放支持的编辑保留供后续轮次探索，并不直接成为最终验证版本。`_selection_gate()` 比较验证集总体成功率；默认 ALFWorld/AppWorld 不接受平局，其他路径可用分数/步数决胜，配置也可允许平局或关闭门禁。总体不退化不等于每个旧任务不退化，更不是新分布保证。
+- **收录价值与核查边界：**适合借鉴“编辑—执行证据—回放—验证版本”的追溯链以及探索版本与稳定版本分离。论文报告 ALFWorld、AppWorld、ScienceWorld 实验；本条仅静态核查，没有运行或复现，依赖外部环境与数据。论文发表于 2026-10-04；核查版本有 2026-10-13 的回放验证/跨轮编辑跟踪实质修改，论文日期不是代码首发日期。作者仓库由论文链接确认；核查版本未发现许可证文件，复用前需确认授权。
+- **源码核查（2026-10-14，固定提交）：**
+
+[evidence_pipeline.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/evidence_pipeline.py) · [working_branch.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/working_branch.py) · [skill_markdown.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/skill_markdown.py)
 
 <a id="workflow"></a>
 
