@@ -6,7 +6,15 @@
 
 This maintained taxonomy and research index maps current self-improvement approaches, representative methods, and their boundaries. Its nine modification targets cover prompts, memory, skills, workflows, hooks, agent source code, task programs, model weights, and research artifacts. Engineering and regression-evaluation guidance is supplementary reading.
 
-Review date: 2026-10-07. Projects are organized by the objects they modify, using key source paths and original papers/official materials as classification evidence.
+Initial review date: 2026-10-07. Later additions and re-inspections use the review dates and pinned commits stated in their entries. Projects are organized by the objects they modify, using key source paths and original papers/official materials as classification evidence.
+
+## Start with your question
+
+| Question | Where to look and what to check |
+| --- | --- |
+| Can an agent improve without training model weights? | Explore [prompts](#prompt), [memory](#memory), [skills](#skills), and [workflows](#workflow). Check each entry's modification target and weight boundary; effectiveness requires separate evaluation evidence. |
+| How does changing an agent's own code differ from generating a better task program? | Compare [self-modification](#selfcode) with [task-program evolution](#program): the former changes the execution or improvement system, while the latter changes a task solution. Establishing recursion also requires examining subsequent improvement. |
+| How reliable is a method's classification or claimed improvement? | Read its source findings and inspection boundaries, then follow the original sources. The [review methodology](#coverage) and [evaluation resources](#evaluations) distinguish classification evidence from effectiveness evidence. |
 
 ## Reading guide
 
