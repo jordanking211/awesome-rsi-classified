@@ -42,7 +42,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **64 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **65 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -124,6 +124,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | ThetaEvolve | [目标任务程序与算法](#program) | 目标程序及程序生成策略 | 有演化 + RL 训练方向；具体训练参数需按配置确认 | 关键源码静态核查 |
 | ELM | [目标任务程序与算法](#program) | 程序种群、代码 diff；论文另有用演化数据训练模型的阶段 | 搜索实现与论文后续训练阶段分开看 | 关键源码静态核查 |
 | OpenEvolve | [目标任务程序与算法](#program) | 待优化程序源码及候选种群 | 核查核心通过 LLM 产生代码变体，不训练基础 LLM | 关键源码静态核查 |
+| TimeRSI | [目标任务程序与算法](#program) | 预测程序与辅助代码；另维护路由/混合配置 | TimesFM 与编码模型冻结；辅助 CPU 专家可拟合历史数据 | 关键源码静态核查 (2026-10-16) |
 | MemAct | [模型权重或与权重联合的更新](#weights) | 训练后的记忆管理策略；运行时消息/工作记忆 | 训练 actor 权重；运行时还删改上下文 | 关键源码静态核查 |
 | ScoreFlow | [模型权重或与权重联合的更新](#weights) | 工作流生成模型的权重；生成的流程代码 | DPO 训练生成器，不能只归为无权重的 workflow search | 关键源码静态核查 |
 | FlowReasoner | [模型权重或与权重联合的更新](#weights) | query-level 工作流生成模型；输出的工作流 | 作者描述 SFT + RL 更新 meta-agent；训练实现未在本次关键文件中确认 | 运行源码核查；训练部分仅资料确认 |
@@ -640,6 +641,18 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **权重边界**：核查核心通过 LLM 产生代码变体，不训练基础 LLM。
 - **源码／资料发现**：openevolve/controller.py 管理演化、评测、checkpoint 和 best_program.code；是 AlphaEvolve 风格第三方框架，不是 DeepMind 原实现。
 - **证据状态**：关键源码静态核查；未运行实验。
+
+#### TimeRSI
+
+[Paper / 论文](https://arxiv.org/abs/2610.19725) · [Author repository / 作者仓库](https://github.com/haoxin1998/TimeRSI)
+
+- **主要修改对象：目标任务程序与算法。**编码 agent 生成 `candidate.py` 的 `predict(view, tools, memory)` 及辅助 Python 文件，修改特征、目标变换、预测校正与专家组合；`ProgramBank.add()` 保存不可变候选，`search()` 写入 `PROGRAM-BANK.json` 并导出 `selected_program.py`。另维护路由/混合配置与历史反馈；所查路径不重写改进器自身源码，不是 SKILL.md 演化。
+- **模型与阶段：**搜索阶段通过编码模型推理改程序，TimesFM 基础模型保持冻结，编码模型也不在此微调。但候选可以在可见历史数据上拟合辅助 CPU 专家，`experts.py` 存在 `model.fit()`；因此不能称整个系统完全无训练。部署组合阶段使用已有候选和已完成预测的反馈调整组合。
+- **泛化与回归边界：**`search()` 分开研究窗口 R 与选择窗口 S；历史不足时保留当前程序。`choose_selection()` 按 S 上平均 SQL 或相对 Raw 损失选优，属于总体历史损失筛选，不是每个旧任务的硬性不退化门禁。`composition.py` 仅在预测结束时间已可观测时提供相应反馈；这支持时间边界设计，但本次未完成数据泄漏审计。论文报告跨任务及不同编码/预测模型实验，未在此复现；不保证未来分布或旧场景全部受益。
+- **收录价值与来源：**可借鉴独立历史选择窗口、不可变候选存档、旧程序重评估与反馈延迟可见机制。论文 v1 提交于 2026-10-14；作者仓库由论文直接链接，核查提交时间为 2026-10-14，包含实现而非仅文档；Git 提交时间不等于可证实的首次公开时间。代码为 Apache-2.0，模型权重许可另计；本条仅静态阅读，没有安装依赖、运行代码或复现性能。
+- **源码核查（2026-10-16，固定提交）：**
+
+[agent.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/agent.py) · [search.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/search.py) · [core.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/core.py) · [temporal_selection.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/temporal_selection.py) · [composition.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/composition.py) · [experts.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/experts.py)
 
 <a id="weights"></a>
 

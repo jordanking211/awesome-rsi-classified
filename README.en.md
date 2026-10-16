@@ -42,7 +42,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **64 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **65 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -124,6 +124,7 @@ The Category column uses exactly the same names as the table above and the detai
 | ThetaEvolve | [Target-task programs and algorithms](#program) | Target programs and the program-generation policy | Includes evolution and RL-training directions; actual trained parameters depend on configuration | Key source paths statically inspected |
 | ELM | [Target-task programs and algorithms](#program) | Program populations and code diffs; the paper also has a phase training models on evolved data | Separate the search implementation from subsequent training phases in the paper | Key source paths statically inspected |
 | OpenEvolve | [Target-task programs and algorithms](#program) | Source of the program being optimized and its candidate population | The inspected core generates code variants through LLM calls without base LLM training | Key source paths statically inspected |
+| TimeRSI | [Target-task programs and algorithms](#program) | Forecast programs and helpers; auxiliary routing/blend configurations | TimesFM and coding model frozen; CPU experts may fit historical data | Key source paths statically inspected (2026-10-16) |
 | MemAct | [Model weights and updates coupled with weight training](#weights) | A trained memory-management policy; runtime messages and working memory | Actor weights are trained; runtime actions also edit/prune context | Key source paths statically inspected |
 | ScoreFlow | [Model weights and updates coupled with weight training](#weights) | Workflow-generator model weights and generated workflow code | The generator is trained with DPO; this is more than workflow search without weight updates | Key source paths statically inspected |
 | FlowReasoner | [Model weights and updates coupled with weight training](#weights) | A query-level workflow-generator model and its generated workflows | The authors describe SFT and RL updates to the meta-agent; training implementation was not confirmed in the inspected key files | Runtime source inspected; training supported by documentation only |
@@ -640,6 +641,18 @@ Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob
 - **Weight boundary**: The inspected core generates code variants through LLM calls without base LLM training.
 - **Source / material findings**: openevolve/controller.py manages evolution, evaluation, checkpoints, and best_program.code. This is a third-party AlphaEvolve-style framework rather than DeepMind's original implementation.
 - **Evidence status**: Key source paths statically inspected; no experiments were run.
+
+#### TimeRSI
+
+[Paper / 论文](https://arxiv.org/abs/2610.19725) · [Author repository / 作者仓库](https://github.com/haoxin1998/TimeRSI)
+
+- **Primary target: Target-task programs and algorithms.** A coding agent generates `candidate.py` with `predict(view, tools, memory)` and Python helpers, revising features, target transforms, forecast corrections and expert combinations. `ProgramBank.add()` stores immutable candidates; `search()` saves `PROGRAM-BANK.json` and exports `selected_program.py`. Routing/blend configurations and feedback are auxiliary changes. The inspected path does not rewrite the improver itself or evolve SKILL.md files.
+- **Models and stages:** code research uses coding-model inference while keeping the TimesFM foundation model frozen; it does not fine-tune the coding model. Candidates may fit auxiliary CPU experts on visible historical data, and `experts.py` contains `model.fit()`, so the whole system is not training-free. Deployment composition adjusts combinations of existing candidates using completed-forecast feedback.
+- **Generalization and regression boundaries:** `search()` separates research windows R from selection windows S and retains the incumbent when history is insufficient. `choose_selection()` minimizes mean SQL or loss relative to Raw on S: an aggregate historical-loss criterion, not a hard non-regression gate for every old task. `composition.py` exposes feedback only once its forecast end is observable; this supports a temporal boundary but is not a completed leakage audit. The paper reports experiments across tasks and coding/forecasting models; these were not reproduced here and do not guarantee improvement on future distributions or every old scenario.
+- **Engineering value and provenance:** useful ideas include separate historical selection windows, immutable candidate archives, reevaluation of older programs and delayed feedback visibility. Paper v1 was submitted on 2026-10-14. The paper directly links the author repository; the inspected commit is dated 2026-10-14 and includes implementation, not only documentation. A Git commit timestamp does not establish the first public release date. Code is Apache-2.0; model-weight licensing is separate. This was static inspection only, without installing dependencies, executing code or reproducing performance.
+- **Source inspection (2026-10-16, pinned commit):**
+
+[agent.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/agent.py) · [search.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/search.py) · [core.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/core.py) · [temporal_selection.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/temporal_selection.py) · [composition.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/composition.py) · [experts.py](https://github.com/haoxin1998/TimeRSI/blob/76f73745874cae9587433801fa5865a8a228b549/src/timersi_u1/experts.py)
 
 <a id="weights"></a>
 
