@@ -42,7 +42,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **65 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **66 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -100,6 +100,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | skill-up / skill-upper | [技能文件、可执行技能与工具库](#skills) | SKILL.md、支持文件与评测用例 | 外部 Agent 编辑；所核查路径不训练模型权重 | 关键源码静态核查 (2026-10-11) |
 | SkillAdam | [技能文件、可执行技能与工具库](#skills) | 单个 SKILL.md；另维护优化记忆和修订预算 | 模型推理编辑文本；不是 Adam 训练模型权重 | 关键源码静态核查 (2026-10-12) |
 | EviSkill | [技能文件、可执行技能与工具库](#skills) | Markdown 技能；辅助证据卡与暂存编辑账本 | 推理编辑技能；行动与编辑模型均不更新权重 | 关键源码静态核查；许可证未确认 (2026-10-14) |
+| Cortex | [技能文件、可执行技能与工具库](#skills) | SKILL.md 与文本规则；另调整加载范围 | 模型推理，不训练权重；重复对照与单任务回归门禁 | 关键源码静态核查 (2026-10-17) |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -409,6 +410,18 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **源码核查（2026-10-14，固定提交）：**
 
 [evidence_pipeline.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/evidence_pipeline.py) · [working_branch.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/working_branch.py) · [skill_markdown.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/skill_markdown.py)
+
+#### Cortex
+
+[Paper / 论文](https://arxiv.org/abs/2610.14216) · [Author repository / 作者仓库](https://github.com/samugit83/cortex)
+
+- **主要修改对象：技能文件、可执行技能与工具库。**具体演化文本 `SKILL.md`，同时新增、剪枝或调整文本规则的加载范围。`cmd_promote()` 将候选移动到 `.claude/skills/<name>/`，或把 `RULE.md` 移到 `.claude/rules/<name>.md`。规则属于指令文本；仓库包含 hook 不代表演化对象是 hook，所查循环也不重写改进器源码。
+- **闭环与模型：**`/harvest` 保存纠错经验与可回放任务，`/evolve` 提出单个技能/规则，CLI 在沙箱中运行有/无候选的对照，`/prune` 测量移除或替换效果。生成者、执行者和可选 Jev 判断器均使用推理；本流程不训练其权重。数值裁决在 `score.sh`，不是由模型自由决定。
+- **回归控制与写回：**确认阶段默认每个任务每组运行 3 次；新增要求有收益、净增至少 2 次通过、候选实际加载。对纳入门禁的任务，成功率下降容忍度默认 0.34，基线全通过的任务须保持全通过；仅因单任务退化失败时还可能复测。未暴露于修改的任务不进入这些门禁。`promote` 默认检查确认/复测的 KEEP（替换为 ACCEPT），但显式 `--force` 可绕过检查。因此这是有限样本、可配置的工程门禁，不是所有旧场景永不退化保证。
+- **价值与证据边界：**适合借鉴真实纠错回放、重复对照、加载证据、单任务保护与删除前消融。论文主要证据来自专门构造的仓库；更强模型收益小，真实仓库尝试未得到可学习信号，有害候选实验也未建立识别损害能力。本次仅静态核查，未运行或复现。作者仓库由论文链接确认，MIT 许可；论文 2026-10-09 提交，Git 历史有 2026-10-03 的工具/实验实现发布，最新 2026-10-14 提交仅补论文链接，不能称作当天新增核心功能；提交日期不证明首次公开时间。
+- **源码核查（2026-10-17，固定提交）：**
+
+[bin/score.sh](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/score.sh) · [bin/cortex](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/cortex) · [bin/harness.py](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/harness.py) · [commands/evolve.md](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/commands/evolve.md) · [commands/prune.md](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/commands/prune.md)
 
 <a id="workflow"></a>
 

@@ -42,7 +42,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **65 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **66 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -100,6 +100,7 @@ The Category column uses exactly the same names as the table above and the detai
 | skill-up / skill-upper | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md, supporting files, and evaluation cases | External agent editing; no weight training in inspected paths | Key source paths statically inspected (2026-10-11) |
 | SkillAdam | [Skill files, executable skills, and tool libraries](#skills) | One SKILL.md; auxiliary optimization memory and edit budget | Inference edits text; not Adam training of model weights | Key source paths statically inspected (2026-10-12) |
 | EviSkill | [Skill files, executable skills, and tool libraries](#skills) | Markdown skills; auxiliary evidence cards and provisional edits | Inference edits skills; action/editor weights unchanged | Key source statically inspected; license unconfirmed (2026-10-14) |
+| Cortex | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md and text rules; auxiliary loading scopes | Inference, no weight training; repeated controls and per-task regression gates | Key source paths statically inspected (2026-10-17) |
 | ADAS / Meta Agent Search | [Workflows, module composition, and graph/controller parameters](#workflow) | Implementation code for a new agent's forward() method | The inspected Meta Agent Search uses fixed models to generate code | Key source paths statically inspected |
 | AFlow | [Workflows, module composition, and graph/controller parameters](#workflow) | Workflow graph.py and node prompts | Workflow search does not fine-tune the target LLM | Key source paths statically inspected |
 | GPTSwarm | [Workflows, module composition, and graph/controller parameters](#workflow) | Node prompts and edge-connection probabilities/graph parameters | Graph-structure parameters receive gradient updates; these are distinct from base LLM weights | Key source paths statically inspected |
@@ -409,6 +410,18 @@ Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob
 - **Source inspection (2026-10-14, pinned commit):**
 
 [evidence_pipeline.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/evidence_pipeline.py) · [working_branch.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/working_branch.py) · [skill_markdown.py](https://github.com/Zhouyaner/EviSkill/blob/896dbcb75b94d09dc5330e1cc6dcadb864244e77/wmsm/skill_markdown.py)
+
+#### Cortex
+
+[Paper / 论文](https://arxiv.org/abs/2610.14216) · [Author repository / 作者仓库](https://github.com/samugit83/cortex)
+
+- **Primary target: Skill files, executable skills, and tool libraries.** It evolves textual `SKILL.md` files and also adds, prunes or narrows the loading scope of text rules. `cmd_promote()` moves candidates into `.claude/skills/<name>/` or moves `RULE.md` into `.claude/rules/<name>.md`. Rules are instruction text; having hooks in the repository does not make hooks the evolution target. The inspected loop does not rewrite the improver's source.
+- **Loop and models:** `/harvest` records corrections and replayable tasks; `/evolve` proposes one skill/rule; CLI rollouts compare the harness with and without it in sandboxes. `/prune` measures removal or replacement. Proposer, executor and optional Jev judge use inference without weight training here. Numerical verdicts come from `score.sh`, rather than a model's discretionary judgment.
+- **Regression control and persistence:** confirmation defaults to 3 runs per task per arm. Addition requires some gain, at least 2 net additional passes and actual candidate loading. For tasks included in the gates, the default tolerated pass-rate drop is 0.34; baseline-perfect tasks must remain perfect. Failures due only to per-task regressions may trigger rechecking. Tasks unexposed to the change are excluded from these gates. Promotion normally requires a confirmation/recheck KEEP (ACCEPT for replacement), but explicit `--force` bypasses this check. These are configurable finite-sample gates, not guarantees against every old-scenario regression.
+- **Value and evidence boundaries:** useful ideas include correction replay, repeated controls, loading evidence, per-task protection and ablation before removal. Main paper evidence comes from a purpose-built repository; gains shrink with a stronger model, a real-repository attempt yielded no learning signal, and harmful-candidate experiments did not establish harm-detection capability. This review only inspected source; no execution or replication. The paper links the MIT-licensed author repository. Paper submission: 2026-10-09; Git history includes the tool/lab implementation release on 2026-10-03. The latest 2026-10-14 commit only adds paper links, not new core functionality; commit dates do not prove first public availability.
+- **Source inspection (2026-10-17, pinned commit):**
+
+[bin/score.sh](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/score.sh) · [bin/cortex](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/cortex) · [bin/harness.py](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/harness.py) · [commands/evolve.md](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/commands/evolve.md) · [commands/prune.md](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/commands/prune.md)
 
 <a id="workflow"></a>
 
