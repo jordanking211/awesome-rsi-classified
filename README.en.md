@@ -42,7 +42,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **66 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **67 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -119,6 +119,7 @@ The Category column uses exactly the same names as the table above and the detai
 | Self-Harness | [Agent / harness / optimizer source code](#selfcode) | Prompts, skills, subagents, runtime recovery, and other components exposed by repo_baseline.py | The public description keeps the model and evaluator fixed | Key source paths statically inspected |
 | Hyperagents | [Agent / harness / optimizer source code](#selfcode) | Task-agent and meta-agent codebases | The inspected path edits code through model tool calls | Key source paths statically inspected |
 | Ouroboros | [Agent / harness / optimizer source code](#selfcode) | Agent core source and reviewed successor versions | The inspected evolution mechanism updates code/commits | Key source paths statically inspected |
+| Harness² | [Agent / harness / optimizer source code](#selfcode) | Restricted harness tree: instructions, skills/scripts, subagents, hooks/plugins, plus accumulated experience | Inference-time component edits; no target-model or improver weight training | Key source paths statically inspected; baseline excluded from final selection |
 | AlphaEvolve | [Target-task programs and algorithms](#program) | Problem-solving algorithms/programs, such as mathematical constructions and compute kernels | The original method primarily searches programs; base LLM training was not confirmed here | Paper/documentation; core source unverified |
 | FunSearch | [Target-task programs and algorithms](#program) | The body of a designated function to evolve | The inspected open core uses LLM sampling and program scoring | Key source paths statically inspected |
 | ShinkaEvolve | [Target-task programs and algorithms](#program) | Target program code; optional evolution of mutation/system prompts | The program-evolution core is distinct from base LLM training | Key source paths statically inspected |
@@ -596,6 +597,16 @@ Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob
 - **Weight boundary**: The inspected evolution mechanism updates code/commits.
 - **Source / material findings**: post_task_evolution.py and tools/git_evolution.py manage evolution and reviewed-commit permission boundaries. The Web UI's evolution.js should not be mistaken for the core self-improvement implementation.
 - **Evidence status**: Key source paths statically inspected; no experiments were run.
+
+#### Harness²
+
+[Paper](https://arxiv.org/abs/2610.14224) · [Repository](https://github.com/google-research/harness2) · [tree.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/tree.py) · [recursion.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/recursion.py) · [selection.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/selection.py) · [library.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/library.py)
+
+- **Primary modification target**: Agent / harness / optimizer source code. The actual surface is a restricted harness component tree spanning prompts, skills, subagent descriptions, Python scripts, and executor-supported hooks/plugins; this is not arbitrary optimizer-source rewriting.
+- **Source findings**: `tree.py:is_allowed` restricts edits to always-on instruction files, `SKILL.md`, skill scripts, `sub_agents/*/AGENT.md`, `scripts/*.py`, and executor-declared hook files and TypeScript plugins. `recursion.py` proposes, probes, and composes candidates; `_accept_tree` checks component structure and grader-information leakage, not old-task regression. When experience exists, `library.py` stores the adopted component tree, `EXPERIENCE.md`, and an index for later tasks in the same domain.
+- **Models and stage**: Inference-time improvement of the harness around fixed models. The inspected loop invokes improver and executor models without training target-model or engineer/generator weights. Cross-task recursion primarily accumulates harnesses and experience; it does not establish evolution of the optimizer implementation itself.
+- **Generalization and regression limits**: The paper reports evaluations on WorkBuddy, JobBench, and LAB. The library enables cross-task reuse, but guarantees neither cross-domain transfer nor preservation of old-task performance. `selection_pool` explicitly includes only final candidates, excludes the baseline, and permits no abstention; the inspected selection path has no per-task regression gate over an old-task suite. Applying it to skill improvement requires adding baseline retention, old-task replay, and rejection of regressing candidates.
+- **Provenance, activity, and inspection scope**: Author implementation from Google Research. The code-release commit is dated 2026-10-08 and the first paper submission 2026-10-09; a further code commit is dated 2026-10-09, whereas the pinned version's 2026-10-14 update only fixes the paper link. Core paths above were statically inspected on 2026-10-19; no experiments or performance reproduction were run. The official README notes that default network access can leak evaluation information, so isolation settings matter when interpreting results.
 
 <a id="program"></a>
 

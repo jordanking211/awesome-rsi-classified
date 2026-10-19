@@ -42,7 +42,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **66 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **67 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -119,6 +119,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | Self-Harness | [agent / harness / 优化器自身源码](#selfcode) | repo_baseline.py 暴露的提示词、skills、子 agent、运行时恢复等组件 | 公开说明保持模型和评测器固定 | 关键源码静态核查 |
 | Hyperagents | [agent / harness / 优化器自身源码](#selfcode) | 任务 agent 和 meta-agent 的代码库 | 所核查路径通过模型工具调用改代码 | 关键源码静态核查 |
 | Ouroboros | [agent / harness / 优化器自身源码](#selfcode) | agent 核心源码及经过 review 的后继版本 | 核查演化机制是代码/提交更新 | 关键源码静态核查 |
+| Harness² | [agent / harness / 优化器自身源码](#selfcode) | 受限 harness 组件树：指令、skills/脚本、子 agent、hooks/plugins，并积累经验 | 推理时编辑组件；不训练目标模型或改进器权重 | 关键源码静态核查；baseline 不在最终选择池 |
 | AlphaEvolve | [目标任务程序与算法](#program) | 问题求解算法/程序，例如数学构造和计算内核 | 原方法主要搜索程序；没有在此确认基础 LLM 训练 | 论文/说明；核心源码未核验 |
 | FunSearch | [目标任务程序与算法](#program) | 指定待演化函数的程序体 | 核查开源核心使用 LLM 采样与程序评分 | 关键源码静态核查 |
 | ShinkaEvolve | [目标任务程序与算法](#program) | 目标程序代码；可选演化 mutation/system prompt | 程序演化核心不等于基础 LLM 训练 | 关键源码静态核查 |
@@ -596,6 +597,16 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **权重边界**：核查演化机制是代码/提交更新。
 - **源码／资料发现**：post_task_evolution.py 与 tools/git_evolution.py 管理演化与 reviewed-commit 权限边界；不能把 Web UI 的 evolution.js 当作核心自改进实现。
 - **证据状态**：关键源码静态核查；未运行实验。
+
+#### Harness²
+
+[Paper](https://arxiv.org/abs/2610.14224) · [Repository](https://github.com/google-research/harness2) · [tree.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/tree.py) · [recursion.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/recursion.py) · [selection.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/selection.py) · [library.py](https://github.com/google-research/harness2/blob/1cfe254e8d25b15f37048c3730134686abe60335/harness2/core/library.py)
+
+- **主要修改对象**：agent / harness / 优化器自身源码。具体是受限的 harness 组件树，横跨提示词、skills、子 agent 描述、Python 脚本及执行器支持的 hooks/plugins；不是任意修改优化器源码。
+- **源码发现**：`tree.py` 的 `is_allowed` 限定常驻指令文件、`SKILL.md`、技能脚本、`sub_agents/*/AGENT.md`、`scripts/*.py`，以及由执行器声明的 hooks 文件与 TypeScript plugins。`recursion.py` 提议、试跑并组合候选；`_accept_tree` 检查组件结构和评测信息泄漏，不是旧任务回归测试。`library.py` 在存在经验时保存采用的组件树、`EXPERIENCE.md` 和索引，供同领域后续任务参考。
+- **模型与阶段**：推理时改进固定模型周围的 harness；所核查循环调用改进器和执行器，不训练目标模型或工程师/生成器权重。跨任务递归主要体现为累积 harness 与经验，不能据此宣称优化器自身实现也在演化。
+- **泛化与回归边界**：论文报告 WorkBuddy、JobBench、LAB 上的评测；经验库提供跨任务复用机制，但不是跨领域或旧场景不退化保证。`selection_pool` 明确只纳入最终候选，排除 baseline 且不允许 abstention；所核查选择路径没有旧任务测试集逐项回归门禁。用于新场景 skills 改进时，仍需自行加入保留基线、旧任务回放和拒绝劣化候选的规则。
+- **来源、活跃度与核查范围**：作者 Google Research 实现，代码发布提交为 2026-10-08，论文首次提交为 2026-10-09；2026-10-09 有后续代码提交，固定版本的 2026-10-14 更新仅修正文献链接。2026-10-19 静态核查上述核心路径，未运行或复现性能；官方 README 提醒默认执行环境的网络访问可能造成评测信息泄漏，结果解读需考虑隔离设置。
 
 <a id="program"></a>
 
