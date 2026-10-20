@@ -42,7 +42,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **67 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **68 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -133,6 +133,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | SIA | [模型权重或与权重联合的更新](#weights) | harness/目标 agent 代码 + 可选 RL 权重更新流程 | harness 与 weights 两种模式，不能说每一轮都会同时改两者 | 关键源码静态核查 |
 | SEAL | [模型权重或与权重联合的更新](#weights) | 自生成的训练数据/更新配置；适应后的模型权重 | 内循环适应模型，外循环学习 self-edit 生成策略 | 关键源码静态核查 |
 | CycleResearcher | [模型权重或与权重联合的更新](#weights) | 研究论文生成模型/评审模型的权重；运行时论文文本 | 论文涉及训练；公开核查入口主要是模型加载与推理 | 运行源码核查；训练部分仅资料确认 |
+| Self-HPO | [模型权重或与权重联合的更新](#weights) | agent.py 中的运行时机制与策略模型权重 | 同一策略提出 harness 修改，再通过 GRPO 训练 | 关键源码静态核查；允许部分任务退化 |
 | The AI Scientist-v2 | [研究产物、实验代码与合成数据](#research) | 实验实现代码、实验树节点、结果与论文产物 | 实验中可能训练研究对象，不等于训练 scientist agent | 关键源码静态核查 |
 | Dolphin | [研究产物、实验代码与合成数据](#research) | 研究想法、实验实现、反馈记录 | 实验模型训练与 Dolphin agent 自身训练分开 | 关键源码静态核查 |
 | NovelSeek / InternAgent | [研究产物、实验代码与合成数据](#research) | 研究计划、实验代码、历史 idea/经验 | 实验任务可能训练模型，不能推断基础 agent 每轮微调 | 关键源码静态核查 |
@@ -735,6 +736,16 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **权重边界**：论文涉及训练；公开核查入口主要是模型加载与推理。
 - **源码／资料发现**：cycle_researcher.py 是生成论文的推理接口；本次未确认完整迭代 RL 训练源码。代码/权重使用自定义许可证，不能自动当作 MIT 类开源。
 - **证据状态**：运行源码核查；训练部分仅资料确认；未运行实验。
+
+#### Self-HPO
+
+[Paper](https://arxiv.org/abs/2610.22791) · [Author explanation](https://www.cs.virginia.edu/~tqf5qb/blog/self-hpo/) · [Repository](https://github.com/MSR-Orchard/Self-HPO) · [scripts/h_step/propose_prompt.tmpl](https://github.com/MSR-Orchard/Self-HPO/blob/3c3d0bd93a8a5a72399c855783460b141ea27d49/scripts/h_step/propose_prompt.tmpl) · [scripts/h_step/record_result.py](https://github.com/MSR-Orchard/Self-HPO/blob/3c3d0bd93a8a5a72399c855783460b141ea27d49/scripts/h_step/record_result.py) · [scripts/h_step/run_h_step.sh](https://github.com/MSR-Orchard/Self-HPO/blob/3c3d0bd93a8a5a72399c855783460b141ea27d49/scripts/h_step/run_h_step.sh) · [scripts/p_step/run_p_step.sh](https://github.com/MSR-Orchard/Self-HPO/blob/3c3d0bd93a8a5a72399c855783460b141ea27d49/scripts/p_step/run_p_step.sh) · [harnesses/self-hpo/agent.py](https://github.com/MSR-Orchard/Self-HPO/blob/3c3d0bd93a8a5a72399c855783460b141ea27d49/harnesses/self-hpo/agent.py)
+
+- **主要修改对象**：模型权重或与权重联合的更新；交替修改编码 agent 的 harness 源码和策略模型权重。H-step 的提案明确编辑 `agents/CAND/agent.py`，在父版本上增加运行时机制；公开最终 harness 包含提交拦截、文件覆盖检查与导入提示，不是单纯修改 SKILL.md。
+- **模型与阶段**：H-step 固定当前策略，由它分析失败并提出候选；P-step 的 `run_p_step.sh` 通过 Slime 启动 GRPO actor 训练，使用选出的 harness。Self-HPO 中任务执行者与 harness 提案者是同一轮策略，训练后的策略用于下一轮；另列的 HPO 对照用外部模型提出修改，不能混为 Self-HPO 的必要条件。
+- **源码与回归控制**：`run_h_step.sh` 保留候选记录并输出被保留版本中分数最高的 harness。`record_result.py` 记录相对 seed 的 gained/lost 任务；晋级条件为平均分至少高于当前保留最优 1 个百分点、gained 数量大于 lost，且新机制实际触发。这允许部分任务退化；记录 McNemar p 值不等于用它作为晋级门槛，保留父方法也不等于行为不变。
+- **泛化证据与工程价值**：作者报告仅用 Python 训练、在未用于循环的 SWE-Bench Multilingual 和 Pro 上评估迁移，并披露原本稳定成功的任务子集出现退化。可借鉴逐任务 gain/loss 记录、机制触发标记及 harness/权重交替优化；若要求旧场景不劣化，需要额外设置独立回归集和严格拒绝规则。
+- **来源与核查边界**：作者页面指向 MSR-Orchard 实现；论文首次提交 2026-10-16，仓库初始公开代码提交日期为 2026-10-19，作者说明发布于 2026-10-19。2026-10-20 静态核查上述候选选择、harness 实现和训练启动脚本；未运行训练、评测或复现性能，未审计完整 Slime 训练栈。
 
 <a id="research"></a>
 
