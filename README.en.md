@@ -42,7 +42,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **68 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **69 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -101,6 +101,7 @@ The Category column uses exactly the same names as the table above and the detai
 | SkillAdam | [Skill files, executable skills, and tool libraries](#skills) | One SKILL.md; auxiliary optimization memory and edit budget | Inference edits text; not Adam training of model weights | Key source paths statically inspected (2026-10-12) |
 | EviSkill | [Skill files, executable skills, and tool libraries](#skills) | Markdown skills; auxiliary evidence cards and provisional edits | Inference edits skills; action/editor weights unchanged | Key source statically inspected; license unconfirmed (2026-10-14) |
 | Cortex | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md and text rules; auxiliary loading scopes | Inference, no weight training; repeated controls and per-task regression gates | Key source paths statically inspected (2026-10-17) |
+| EvoSkill v2 | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md and optional scripts; persistent evolver session and version-bound rollouts | No model weight training | Key source paths inspected; no score-based rejection |
 | ADAS / Meta Agent Search | [Workflows, module composition, and graph/controller parameters](#workflow) | Implementation code for a new agent's forward() method | The inspected Meta Agent Search uses fixed models to generate code | Key source paths statically inspected |
 | AFlow | [Workflows, module composition, and graph/controller parameters](#workflow) | Workflow graph.py and node prompts | Workflow search does not fine-tune the target LLM | Key source paths statically inspected |
 | GPTSwarm | [Workflows, module composition, and graph/controller parameters](#workflow) | Node prompts and edge-connection probabilities/graph parameters | Graph-structure parameters receive gradient updates; these are distinct from base LLM weights | Key source paths statically inspected |
@@ -424,6 +425,15 @@ Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob
 - **Source inspection (2026-10-17, pinned commit):**
 
 [bin/score.sh](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/score.sh) · [bin/cortex](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/cortex) · [bin/harness.py](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/bin/harness.py) · [commands/evolve.md](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/commands/evolve.md) · [commands/prune.md](https://github.com/samugit83/cortex/blob/2af9eb7607eabbedb47daa6aef4a1cce6ef18aab/commands/prune.md)
+
+#### EvoSkill v2
+
+[Paper](https://arxiv.org/abs/2610.25931) · [Author repository (v2)](https://github.com/sentient-agi/EvoSkill/tree/v2) · [src/orchestrator/loop.py](https://github.com/sentient-agi/EvoSkill/blob/331ac10aac04d179942d1dfdd88732d4a52a869f/src/orchestrator/loop.py) · [src/orchestrator/stateful_evolver.py](https://github.com/sentient-agi/EvoSkill/blob/331ac10aac04d179942d1dfdd88732d4a52a869f/src/orchestrator/stateful_evolver.py) · [src/orchestrator/skill_library.py](https://github.com/sentient-agi/EvoSkill/blob/331ac10aac04d179942d1dfdd88732d4a52a869f/src/orchestrator/skill_library.py)
+
+- **Primary modification target**: Skill files, executable skills, and tool libraries: `SKILL.md` and optional helper scripts, without training solver or evolver weights. Benchmark-plugin generation is a setup step, not per-epoch harness evolution.
+- **Source findings**: `stateful_evolver.py` validates persistent Claude CLI sessions/resumption. `skill_library.py` binds historical rollouts to the producing skill version and hash, avoiding attribution to newer same-named skills. `loop.py:_run_promote` copies staging into `skills_vN` and refuses conflicting overwrites. Content-consistency checks are not performance regression gates.
+- **Generalization and regression limits**: The paper evaluates held-out tasks in SpreadsheetBench v2 and τ³-bench banking, not cross-domain transfer of one shared skill library. Every epoch is retained without score-based rejection, and final evaluation uses the last epoch. Persistent improvement sessions and version-bound evidence are useful engineering patterns; deployment still needs independent old-task regression tests and rejection/rollback rules.
+- **Provenance, dates, and scope**: Author implementation on `v2`, distinct from the older `main`. Paper first submitted 2026-10-19; earlier branch code dates to August, with a report-aligned implementation update on 2026-10-20. Paths above statically inspected 2026-10-21; no experiments run or complete isolation/plugin audit performed.
 
 <a id="workflow"></a>
 
