@@ -19,6 +19,7 @@
 ## 阅读导航
 
 - [分类方法与 RSI 收录边界](#taxonomy-method)
+- [分类判定指南：提示、记忆、技能与递归性的区别](docs/CLASSIFICATION_GUIDE.md)
 - [覆盖与核查方法](#coverage)
 - [九类修改对象及其含义](#taxonomy)
 - [方法总览与证据状态](#overview)

@@ -19,6 +19,7 @@ Initial review date: 2026-10-07. Later additions and re-inspections use the revi
 ## Reading guide
 
 - [Classification method and RSI scope](#taxonomy-method)
+- [Classification guide: prompts, memory, skills, and recursion](docs/CLASSIFICATION_GUIDE.en.md)
 - [Coverage and review methodology](#coverage)
 - [Nine modification targets and their meanings](#taxonomy)
 - [Method overview and evidence status](#overview)
