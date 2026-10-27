@@ -43,7 +43,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **70 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **71 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -93,6 +93,7 @@ The Category column uses exactly the same names as the table above and the detai
 | AgentRxiv | [Context, experience, and procedural memory](#memory) | A shared paper repository, retrieval context, and research reports | The shared-knowledge path was inspected; it does not train agent weights | Key source paths statically inspected |
 | MCE | [Skill files, executable skills, and tool libraries](#skills) | A context-engineering SKILL.md and the context files/code produced by its execution | The inspected path edits files through an external agent, without training the base model here | Key source paths statically inspected |
 | Alita | [Skill files, executable skills, and tool libraries](#skills) | Dynamic MCP tool code and a reusable tool library described in the paper | Paper-level mechanism classification; implementation unconfirmed | Paper/documentation; core source unverified |
+| ALTK-Evolve | [Context, experience, and procedural memory](#memory) | Trajectory-derived guideline memory, consolidation and task-based retrieval | No model weight training in inspected path | Key source paths inspected; no per-task non-regression guarantee |
 | Voyager | [Skill files, executable skills, and tool libraries](#skills) | Executable JavaScript skills, skill descriptions, and a retrieval library | The skill-accumulation path does not fine-tune the LLM | Key source paths statically inspected |
 | SkillWeaver | [Skill files, executable skills, and tool libraries](#skills) | Python/API skill functions for web interaction and a knowledge base | The inspected exploration/storage path generates code through inference | Key source paths statically inspected |
 | CORAL | [Skill files, executable skills, and tool libraries](#skills) | Research-attempt code, shared notes, and reusable skill directories | Inspected skill sharing does not imply LLM weight updates | Key source paths statically inspected |
@@ -309,6 +310,15 @@ The Category column uses exactly the same names as the table above and the detai
 - **Weight boundary**: The shared-knowledge path was inspected; it does not train agent weights.
 - **Source / material findings**: The official site's Code link points to AgentLaboratory. The AgentRxiv class in ai_lab_repo.py searches shared reports and writes research PDFs into uploads.
 - **Evidence status**: Key source paths statically inspected; no experiments were run.
+
+#### ALTK-Evolve
+
+[Official description / repository](https://github.com/AgentToolkit/altk-evolve) · [altk_evolve/llm/guidelines/guidelines.py](https://github.com/AgentToolkit/altk-evolve/blob/7185b4092534a18b22486cd27e48f7e9fcaef8af/altk_evolve/llm/guidelines/guidelines.py) · [altk_evolve/processing/manager.py](https://github.com/AgentToolkit/altk-evolve/blob/7185b4092534a18b22486cd27e48f7e9fcaef8af/altk_evolve/processing/manager.py) · [altk_evolve/frontend/client/evolve_client.py](https://github.com/AgentToolkit/altk-evolve/blob/7185b4092534a18b22486cd27e48f7e9fcaef8af/altk_evolve/frontend/client/evolve_client.py) · [altk_evolve/llm/guidelines/retrieval.py](https://github.com/AgentToolkit/altk-evolve/blob/7185b4092534a18b22486cd27e48f7e9fcaef8af/altk_evolve/llm/guidelines/retrieval.py)
+
+- **Primary modification target**: Context, experience, and procedural memory. The inspected path generates, persists, consolidates, and retrieves guideline entities with triggers, steps, and provenance. It neither rewrites agent source nor trains model weights; procedural text is not automatically an executable skill.
+- **Write-back and reading**: `generate_guidelines` derives guidance from trajectories. `ProcessingManager.persist` uses `prepare_updates` / `commit_prepared`, checking processing checkpoints and changed replacement targets. `EvolveClient` writes merged guidelines before attempting original-record deletion; vetoed originals remain and are excluded from repeated merging. `select_guidelines` combines support-based core guidance with task-similarity retrieval and deduplication for later context.
+- **Engineering value and limits**: Reusable patterns include provenance, concurrent-write checks, and core-plus-retrieved memory. Retention/deletion protection and duplicate-processing guards concern data consistency, not old-task performance. No per-task zero-regression acceptance rule was established in the inspected path. Official AppWorld and τ²-bench reports do not imply that every new or old scenario improves.
+- **Provenance, activity, and scope**: Official AgentToolkit implementation; substantive 2026-10-23 commits fix consolidation after vetoed deletion and map failed checks. Pinned paths above inspected statically on 2026-10-27. No experiments, performance reproduction, or complete plugin audit performed. This entry covers guideline memory, not every framework processor.
 
 <a id="skills"></a>
 
