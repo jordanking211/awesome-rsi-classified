@@ -43,7 +43,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **71 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **72 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -104,6 +104,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | EviSkill | [技能文件、可执行技能与工具库](#skills) | Markdown 技能；辅助证据卡与暂存编辑账本 | 推理编辑技能；行动与编辑模型均不更新权重 | 关键源码静态核查；许可证未确认 (2026-10-14) |
 | Cortex | [技能文件、可执行技能与工具库](#skills) | SKILL.md 与文本规则；另调整加载范围 | 模型推理，不训练权重；重复对照与单任务回归门禁 | 关键源码静态核查 (2026-10-17) |
 | EvoSkill v2 | [技能文件、可执行技能与工具库](#skills) | SKILL.md 与可选脚本；持久 evolver 会话和版本绑定轨迹 | 不训练模型权重 | 关键源码静态核查；无分数拒绝门禁 |
+| The Trinity | [技能文件、可执行技能与工具库](#skills) | 版本化能力模块：提示词与 JavaScript 函数；附评测前文本技能 | 所核查路径不训练模型权重 | 关键源码静态核查；本地更新无性能拒绝门禁 |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -446,6 +447,15 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **源码发现**：`stateful_evolver.py` 校验持久会话并使用 Claude CLI 的 session/resume 机制，保留跨轮上下文。`skill_library.py` 将历史轨迹绑定到生成它的技能版本和哈希，避免把旧轨迹归因于当前同名技能。`loop.py:_run_promote` 将 staging 复制到 `skills_vN`，拒绝覆盖内容不同的已发布版本；内容一致性检查不是效果回归门禁。
 - **泛化与回归边界**：论文比较 SpreadsheetBench v2 和 τ³-bench banking 的留出任务表现；这不证明同一技能库能跨领域迁移。每轮技能均被保留，不根据验证分数拒绝候选；最终评测使用最后一轮，不承诺旧任务不劣化。最值得借鉴的是持久改进会话与版本绑定的轨迹证据；实际部署仍需增加独立旧任务回归集及拒绝/回滚规则。
 - **来源、时间与核查范围**：作者实现位于 `v2` 分支，与 `main` 上旧版区分。论文首次提交为 2026-10-19；分支此前已有 2026-08 实现，2026-10-20 提交更新为对应本技术报告的系统，不能称代码首次发布于论文日期。2026-10-21 静态核查上述路径；未运行实验，也未验证所有容器隔离与评测插件。
+
+#### The Trinity
+
+[Paper](https://arxiv.org/abs/2610.36077) · [Author repository](https://github.com/InfRec-Cardinal/The-Trinity) · [runtime.mjs](https://github.com/InfRec-Cardinal/The-Trinity/blob/4de8710b792952efe36a91c58d3194b65058e4ec/harness/src/runtime.mjs) · [generation.mjs](https://github.com/InfRec-Cardinal/The-Trinity/blob/4de8710b792952efe36a91c58d3194b65058e4ec/harness/src/generation.mjs) · [engine.mjs](https://github.com/InfRec-Cardinal/The-Trinity/blob/4de8710b792952efe36a91c58d3194b65058e4ec/harness/src/engine.mjs) · [explorer.mjs](https://github.com/InfRec-Cardinal/The-Trinity/blob/4de8710b792952efe36a91c58d3194b65058e4ec/harness/src/explorer.mjs) · [evaluation-skills.mjs](https://github.com/InfRec-Cardinal/The-Trinity/blob/4de8710b792952efe36a91c58d3194b65058e4ec/harness/src/evaluation-skills.mjs)
+
+- **主要修改对象**：技能文件、可执行技能与工具库；核心资产是版本化能力模块的 `prompt` 与 JavaScript `function.source`，覆盖感知、记忆、推理、规划、编排和循环协议。模块通过固定运行时调用；此路径不是改写整个优化器源码，也未训练 Explorer 或生成器模型权重。另有 Creator 环境程序生成及评测前文本技能准备。
+- **源码发现**：`runtime.mjs` 校验并执行模块；`generation.mjs` 校验一次一个模块更新、示例和私有 host tests，失败时保留原注册表。`engine.mjs` 在通过这些校验后保存本地模块。`explorer.mjs:performanceDecision` 明确返回 `retained_without_performance_gate`，性能下降也不会据此回滚。父节点模块继承则另用匹配实例上的总成功次数严格提升规则；这不保证每个旧任务不下降。私有测试由适配器提供，缺省可为空。
+- **泛化与回归边界**：能力树、选择性继承、冻结版本及执行证据可借鉴。论文包含未见基准评测，但 `evaluation-skills.mjs` 对每个 benchmark/Harness 配对先用五次显式准备试验生成并冻结一个文本 skill，因此不能把评测描述为完全无适配迁移。总成功次数门禁和模块单元测试均不等于全量旧场景回归保证；上线仍需独立回归集与拒绝/回滚规则。
+- **来源、时间与核查范围**：作者论文首次提交 2026-10-26，2026-10-30 发布上述代码；2026-10-31 静态核查固定提交。README 的发布计划仍将模拟环境、Harness 与 Router 产物列为待发布，尽管相关框架源码已公开；实际运行还需自行实现环境适配器。这里只确认所列源码行为，未复现论文性能，也未完成沙箱安全审计。
 
 <a id="workflow"></a>
 
