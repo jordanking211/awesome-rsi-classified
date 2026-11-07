@@ -43,7 +43,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **73 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **74 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -94,6 +94,7 @@ The Category column uses exactly the same names as the table above and the detai
 | MCE | [Skill files, executable skills, and tool libraries](#skills) | A context-engineering SKILL.md and the context files/code produced by its execution | The inspected path edits files through an external agent, without training the base model here | Key source paths statically inspected |
 | Alita | [Skill files, executable skills, and tool libraries](#skills) | Dynamic MCP tool code and a reusable tool library described in the paper | Paper-level mechanism classification; implementation unconfirmed | Paper/documentation; core source unverified |
 | ALTK-Evolve | [Context, experience, and procedural memory](#memory) | Trajectory-derived guideline memory, consolidation and task-based retrieval | No model weight training in inspected path | Key source paths inspected; no per-task non-regression guarantee |
+| agent-qa | [Context, experience, and procedural memory](#memory) | memidex app facts, cautions, procedures, and evidence/status metadata. | The inspected curation and persistence path updates knowledge artifacts without training target-model weights. | Key source paths statically inspected; no experiments run |
 | Voyager | [Skill files, executable skills, and tool libraries](#skills) | Executable JavaScript skills, skill descriptions, and a retrieval library | The skill-accumulation path does not fine-tune the LLM | Key source paths statically inspected |
 | SkillWeaver | [Skill files, executable skills, and tool libraries](#skills) | Python/API skill functions for web interaction and a knowledge base | The inspected exploration/storage path generates code through inference | Key source paths statically inspected |
 | CORAL | [Skill files, executable skills, and tool libraries](#skills) | Research-attempt code, shared notes, and reusable skill directories | Inspected skill sharing does not imply LLM weight updates | Key source paths statically inspected |
@@ -321,6 +322,17 @@ The Category column uses exactly the same names as the table above and the detai
 - **Write-back and reading**: `generate_guidelines` derives guidance from trajectories. `ProcessingManager.persist` uses `prepare_updates` / `commit_prepared`, checking processing checkpoints and changed replacement targets. `EvolveClient` writes merged guidelines before attempting original-record deletion; vetoed originals remain and are excluded from repeated merging. `select_guidelines` combines support-based core guidance with task-similarity retrieval and deduplication for later context.
 - **Engineering value and limits**: Reusable patterns include provenance, concurrent-write checks, and core-plus-retrieved memory. Retention/deletion protection and duplicate-processing guards concern data consistency, not old-task performance. No per-task zero-regression acceptance rule was established in the inspected path. Official AppWorld and τ²-bench reports do not imply that every new or old scenario improves.
 - **Provenance, activity, and scope**: Official AgentToolkit implementation; substantive 2026-10-23 commits fix consolidation after vetoed deletion and map failed checks. Pinned paths above inspected statically on 2026-10-27. No experiments, performance reproduction, or complete plugin audit performed. This entry covers guideline memory, not every framework processor.
+
+#### agent-qa
+
+[Website](https://vostride.com) · [Documentation](https://vostride.com/docs/agent-qa/self-improvement) · [GitHub](https://github.com/vostride/agent-qa) · [packages/knowledge-local/src/curator/commit.ts:L1181](https://github.com/vostride/agent-qa/blob/2d56b09304b000034a1ab1c9a5ef2fb4c546c66e/packages/knowledge-local/src/curator/commit.ts#L1181) · [packages/knowledge-local/src/bundle-publish.ts:L199](https://github.com/vostride/agent-qa/blob/2d56b09304b000034a1ab1c9a5ef2fb4c546c66e/packages/knowledge-local/src/bundle-publish.ts#L199) · [packages/knowledge-local/src/bundle-publish.ts:L312](https://github.com/vostride/agent-qa/blob/2d56b09304b000034a1ab1c9a5ef2fb4c546c66e/packages/knowledge-local/src/bundle-publish.ts#L312)
+
+- **Primary modification**: memidex app facts, cautions, procedures, and evidence/status metadata.
+- **Weight boundary**: The inspected curation and persistence path updates knowledge artifacts without training target-model weights.
+- **Source / material findings**: stageBundle writes rendered knowledge parts and a manifest; finalizeStagedBundle publishes the staged directory through durableRename. commitCurationDelta checks a promotion gate before appending a promoted event and evidence receipt.
+- **Value**: Persistent, evidence-gated experience reuse for web, Android, and iOS QA.
+- **Limitations and evidence status**: FSL-1.1-ALv2. CI only proposes candidates. This is knowledge-layer adaptation; recursive improvement of the updater and performance gains were not established by this inspection.
+- **Review date**: 2026-11-07; Key source paths statically inspected; no experiments run.
 
 <a id="skills"></a>
 

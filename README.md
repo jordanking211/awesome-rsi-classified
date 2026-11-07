@@ -43,7 +43,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **73 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **74 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -94,6 +94,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | MCE | [技能文件、可执行技能与工具库](#skills) | 上下文工程 SKILL.md；其执行产生的上下文文件与代码 | 核查路径通过外部 agent 改文件，没有在此训练基础模型 | 关键源码静态核查 |
 | Alita | [技能文件、可执行技能与工具库](#skills) | 论文中的动态 MCP 工具代码与复用工具库 | 论文机制层分类；实现未确认 | 论文/说明；核心源码未核验 |
 | ALTK-Evolve | [上下文、经验与流程记忆](#memory) | 从轨迹生成并合并 guideline 记忆，按任务检索 | 核查路径不训练模型权重 | 关键源码静态核查；无逐任务不退化保证 |
+| agent-qa | [上下文、经验与流程记忆](#memory) | memidex 应用事实、注意事项、操作流程，以及证据与状态元数据。 | 所核查的整理与持久化路径更新知识产物，不训练目标模型权重。 | 关键源码静态核查；未运行实验 |
 | Voyager | [技能文件、可执行技能与工具库](#skills) | JavaScript 可执行技能、技能描述和检索库 | 此技能积累路径不微调 LLM | 关键源码静态核查 |
 | SkillWeaver | [技能文件、可执行技能与工具库](#skills) | 网页操作的 Python/API 技能函数与知识库 | 核查探索/存储路径通过推理生成代码 | 关键源码静态核查 |
 | CORAL | [技能文件、可执行技能与工具库](#skills) | 研究尝试代码、共享 notes 与可复用 skill 目录 | 核查技能共享不意味着 LLM 权重更新 | 关键源码静态核查 |
@@ -321,6 +322,17 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **写回与读取**：`generate_guidelines` 从轨迹生成指导；`ProcessingManager.persist` 经 `prepare_updates` / `commit_prepared` 写入，并检查处理 checkpoint 与被替换目标是否变化。`EvolveClient` 合并 guideline，先写入合并结果再尝试删除原记录；删除被拒绝时保留原记录并避免重复合并。`select_guidelines` 按支持次数选常驻指导，再按当前任务相似度检索并去重，供后续上下文使用。
 - **工程价值与边界**：可借鉴来源归因、并发写入校验及“常驻 + 按任务检索”的记忆选择。保留/删除保护和重复处理防护属于数据一致性措施，不等于旧任务性能回归测试；核查路径未发现逐任务零退化的接纳条件。官方报告 AppWorld 与 τ²-bench 评测，但不应将平均收益解释为新场景和旧场景都必然改进。
 - **来源、活跃度与核查范围**：官方 AgentToolkit 实现；2026-10-23 有合并删除保护修复及失败检查映射的实质提交。2026-10-27 静态核查固定版本以上路径，未运行实验、验证公开性能或审计全部插件。此条目限定 guideline 记忆机制，不概括框架所有处理器。
+
+#### agent-qa
+
+[官网](https://vostride.com) · [文档](https://vostride.com/docs/agent-qa/self-improvement) · [GitHub](https://github.com/vostride/agent-qa) · [packages/knowledge-local/src/curator/commit.ts:L1181](https://github.com/vostride/agent-qa/blob/2d56b09304b000034a1ab1c9a5ef2fb4c546c66e/packages/knowledge-local/src/curator/commit.ts#L1181) · [packages/knowledge-local/src/bundle-publish.ts:L199](https://github.com/vostride/agent-qa/blob/2d56b09304b000034a1ab1c9a5ef2fb4c546c66e/packages/knowledge-local/src/bundle-publish.ts#L199) · [packages/knowledge-local/src/bundle-publish.ts:L312](https://github.com/vostride/agent-qa/blob/2d56b09304b000034a1ab1c9a5ef2fb4c546c66e/packages/knowledge-local/src/bundle-publish.ts#L312)
+
+- **主要修改**: memidex 应用事实、注意事项、操作流程，以及证据与状态元数据。
+- **权重边界**: 所核查的整理与持久化路径更新知识产物，不训练目标模型权重。
+- **源码／资料发现**: stageBundle 写入渲染后的知识文件与清单；finalizeStagedBundle 通过 durableRename 发布暂存目录。commitCurationDelta 在追加晋升事件与证据回执前检查晋升门控。
+- **收录价值**: 为网页、Android 和 iOS QA 提供持久化、证据门控的经验复用机制。
+- **限制与证据状态**: 采用 FSL-1.1-ALv2。CI 仅提出候选。这是知识层适应；本次核查未证明更新器自身的递归改进或性能增益。
+- **核查日期**: 2026-11-07; 关键源码静态核查；未运行实验.
 
 <a id="skills"></a>
 
