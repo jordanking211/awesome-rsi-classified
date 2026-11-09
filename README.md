@@ -43,7 +43,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **73 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **74 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -140,6 +140,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | SEAL | [模型权重或与权重联合的更新](#weights) | 自生成的训练数据/更新配置；适应后的模型权重 | 内循环适应模型，外循环学习 self-edit 生成策略 | 关键源码静态核查 |
 | CycleResearcher | [模型权重或与权重联合的更新](#weights) | 研究论文生成模型/评审模型的权重；运行时论文文本 | 论文涉及训练；公开核查入口主要是模型加载与推理 | 运行源码核查；训练部分仅资料确认 |
 | Self-HPO | [模型权重或与权重联合的更新](#weights) | agent.py 中的运行时机制与策略模型权重 | 同一策略提出 harness 修改，再通过 GRPO 训练 | 关键源码静态核查；允许部分任务退化 |
+| TinyAstral | [模型权重或与权重联合的更新](#weights) | teacher harness 演化后蒸馏 0.8B–4B student | 演化时冻结 Qwen3.8-Flash-Next teacher；随后全参数微调 Qwen3.5 student（视觉塔／对齐器冻结） | 固定提交源码核查 (2026-11-09) |
 | The AI Scientist-v2 | [研究产物、实验代码与合成数据](#research) | 实验实现代码、实验树节点、结果与论文产物 | 实验中可能训练研究对象，不等于训练 scientist agent | 关键源码静态核查 |
 | Dolphin | [研究产物、实验代码与合成数据](#research) | 研究想法、实验实现、反馈记录 | 实验模型训练与 Dolphin agent 自身训练分开 | 关键源码静态核查 |
 | NovelSeek / InternAgent | [研究产物、实验代码与合成数据](#research) | 研究计划、实验代码、历史 idea/经验 | 实验任务可能训练模型，不能推断基础 agent 每轮微调 | 关键源码静态核查 |
@@ -797,6 +798,16 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **源码与回归控制**：`run_h_step.sh` 保留候选记录并输出被保留版本中分数最高的 harness。`record_result.py` 记录相对 seed 的 gained/lost 任务；晋级条件为平均分至少高于当前保留最优 1 个百分点、gained 数量大于 lost，且新机制实际触发。这允许部分任务退化；记录 McNemar p 值不等于用它作为晋级门槛，保留父方法也不等于行为不变。
 - **泛化证据与工程价值**：作者报告仅用 Python 训练、在未用于循环的 SWE-Bench Multilingual 和 Pro 上评估迁移，并披露原本稳定成功的任务子集出现退化。可借鉴逐任务 gain/loss 记录、机制触发标记及 harness/权重交替优化；若要求旧场景不劣化，需要额外设置独立回归集和严格拒绝规则。
 - **来源与核查边界**：作者页面指向 MSR-Orchard 实现；论文首次提交 2026-10-16，仓库初始公开代码提交日期为 2026-10-19，作者说明发布于 2026-10-19。2026-10-20 静态核查上述候选选择、harness 实现和训练启动脚本；未运行训练、评测或复现性能，未审计完整 Slime 训练栈。
+
+#### TinyAstral
+
+[论文／原始说明](https://arxiv.org/abs/2610.41216) · [公开仓库](https://github.com/Garfield-kh/TinyAstral) · [rsi/rsi/loop.py](https://github.com/Garfield-kh/TinyAstral/blob/348de8d0ea24fa8ee75bf7611b1c9ff7d05eb28c/rsi/rsi/loop.py) · [rsi/rsi/gate.py](https://github.com/Garfield-kh/TinyAstral/blob/348de8d0ea24fa8ee75bf7611b1c9ff7d05eb28c/rsi/rsi/gate.py) · [rsi/rsi/patch.py](https://github.com/Garfield-kh/TinyAstral/blob/348de8d0ea24fa8ee75bf7611b1c9ff7d05eb28c/rsi/rsi/patch.py) · [rsi/rsi/rules.yaml](https://github.com/Garfield-kh/TinyAstral/blob/348de8d0ea24fa8ee75bf7611b1c9ff7d05eb28c/rsi/rsi/rules.yaml) · [train/train.sh](https://github.com/Garfield-kh/TinyAstral/blob/348de8d0ea24fa8ee75bf7611b1c9ff7d05eb28c/train/train.sh) · [docs/training.md](https://github.com/Garfield-kh/TinyAstral/blob/348de8d0ea24fa8ee75bf7611b1c9ff7d05eb28c/docs/training.md)
+
+- **主要修改对象**：先修改机器人 agent 的 harness（工具／原语、感知包装、工具返回、失败处理和任务记忆），再训练小型学生模型权重；属于 harness 演化与权重训练结合的方案。
+- **模型与阶段**：Stage 1 在闭环演化期间冻结 Qwen3.8-Flash-Next teacher 权重；master/proposer 可由外部 LLM、人工或 CLI agent 提供，不是本循环训练的模型。Stage 2 冻结 teacher 与最终 harness，用 teacher 决策及真实机器人数据全参数微调 Qwen3.5-0.8B/2B/4B student；训练脚本冻结视觉塔与对齐器。
+- **源码发现与旧场景门控**：loop.py 对候选 diff 做 lint、沙箱应用和可选审计，再在同一 task/seed 对上与父 harness 配对比较。gate.py 将目标任务及触发新组件的非目标样本计入 J，其余非目标样本计入 U；只有 J 的单侧置信下界大于 0、目标任务净胜数大于 0、没有达到阈值且统计显著的 U 回退、且父版本轨迹不含新组件标记时才接受。rules.yaml 的 U 回退阈值为 -2 pp。
+- **泛化证据与限制**：作者报告 RoboTwin 上冻结 teacher 的成功率从 33.4% 升至 63.6%，4B student 达 62.8%；并报告 student 在从未用于 RSI 或训练的三个具身基准上，接近使用同一 harness 的 552B planner。配对门控保护的是预设聚合簇，并不保证每个旧任务或触发场景都不退化；学生微调也不是逐任务零遗忘保证。
+- **来源与核查边界**：论文提交于 2026-10-30；此处源码固定在公开仓库提交 `348de8d0ea24fa8ee75bf7611b1c9ff7d05eb28c`（2026-11-07）。代码许可证为 Apache-2.0；README 对发布权重和数据标注 CC BY-NC-SA 4.0（非商业）限制。已静态检查上述关键路径，未运行训练／评测或复现性能。
 
 <a id="research"></a>
 
