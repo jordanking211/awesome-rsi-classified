@@ -43,7 +43,7 @@ Feedback sources, optimization stages, weight training, and evaluation loops are
 
 ## Coverage and review methodology
 
-- Includes **74 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
+- Includes **75 method entries and 37 evaluation/background entries**, plus **22 related methods and 2 practical articles**.
 - Different methods in the same repository are described separately; repository counts and method counts are distinct.
 - Where an implementation could be located, key functions, edit/write-back locations, training entry points, or candidate-execution code were read at pinned commits. “Source inspection” means checking key static paths, **rather than a complete code audit or experimental reproduction**.
 - Source was only downloaded/read. Projects were not installed, agents were not executed, models were not trained, and performance was not reproduced. A directory, a README claiming open source, or released model weights does not establish that complete training/search code is available.
@@ -106,6 +106,7 @@ The Category column uses exactly the same names as the table above and the detai
 | EvoSkill v2 | [Skill files, executable skills, and tool libraries](#skills) | SKILL.md and optional scripts; persistent evolver session and version-bound rollouts | No model weight training | Key source paths inspected; no score-based rejection |
 | The Trinity | [Skill files, executable skills, and tool libraries](#skills) | Versioned capability modules: prompts and JavaScript functions; pre-evaluation text skills | No weight training in inspected paths | Key source inspected; no local performance rejection gate |
 | SkillOpt | [Skill files, executable skills, and tool libraries](#skills) | Bounded edits to one skill document; best version saved | Executor and optimizer weights stay fixed | Author code inspected; aggregate validation gate |
+| Hermit (ASPIRE adapter) | [Skill files, executable skills, and tool libraries](#skills) | Markdown entries in a shared robot skill library, revised by an Evolver and verifier | Third-party ASPIRE adaptation; example uses Codex/GLM 5.3 Flash inference, with no model-weight training | Pinned source statically inspected; experiments not reproduced |
 | ADAS / Meta Agent Search | [Workflows, module composition, and graph/controller parameters](#workflow) | Implementation code for a new agent's forward() method | The inspected Meta Agent Search uses fixed models to generate code | Key source paths statically inspected |
 | AFlow | [Workflows, module composition, and graph/controller parameters](#workflow) | Workflow graph.py and node prompts | Workflow search does not fine-tune the target LLM | Key source paths statically inspected |
 | GPTSwarm | [Workflows, module composition, and graph/controller parameters](#workflow) | Node prompts and edge-connection probabilities/graph parameters | Graph-structure parameters receive gradient updates; these are distinct from base LLM weights | Key source paths statically inspected |
@@ -467,6 +468,16 @@ Pinned source: [src/core/benchmark.ts](https://github.com/Tencent/SkillHone/blob
 - **Version selection**: The trainer runs the candidate on a selection set. With validation gating enabled, its score must strictly exceed the current score; ties are rejected. The trainer tracks current and best-so-far versions separately and writes `best_skill.md`. Disabling the gate still records validation scores but force-accepts the candidate as current.
 - **Transfer and regression**: The paper compares transfer across models, benchmarks and harnesses. Acceptance uses an aggregate selection score: a gain on one task can offset a new failure on another. If an old scenario must keep passing, rerun that scenario and give its failure a veto before adopting the candidate.
 - **Scope**: The paper appeared in May 2026; the author repository received substantive fixes on November 4. The inspected paths are Microsoft's original offline trainer, text patcher and validation decision, excluding sleep mode and the FlashRSI port. No experiments were reproduced.
+
+#### Hermit (ASPIRE adapter)
+
+[Original paper](https://arxiv.org/abs/2607.00272) · [ASPIRE author repository](https://github.com/NVlabs/ASPIRE) · [Hermit third-party adaptation](https://github.com/Infini-AI-Lab/hermit) · [Adaptation notes](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/docs/methods/aspire.md) · [Skill template and validator](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/adapter/templates/aspire/.hermit/adapter.yaml) · [Shared skill library](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/adapter/templates/aspire/skills/README.md) · [Evolver coordinator](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/agent/evolver/methods/aspire/COORDINATOR.md) · [Evolver code](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/agent/evolver/methods/aspire/evolver.py)
+
+- **Primary modification target**: Shared Markdown skill entries (`skills/*.md`) across robot tasks. The coordinator proposes revisions from execution reports and admits only entries a verifier can reproduce from the library plus proposal. The task actor also writes a Code-as-Policy program for its current task, while the persistent cross-task artifact is the skill library.
+- **Weight boundary and provenance**: This is Hermit's third-party adaptation of ASPIRE, not the same runtime implementation as NVlabs' author code. The inspected path uses Codex (the example binds GLM 5.3 Flash) or Claude Code sessions for inference; it does not train actor, Evolver, or target-model weights.
+- **Transfer and regression boundary**: A proposal must reach at least 4/5 success on the current task's verifier rows. The example configuration separately schedules a final rerun of all tasks with the resulting library. The proposal check is not a historical-task regression gate, and a final rerun does not guarantee per-edit acceptance against every old task. We did not run or reproduce these experiments.
+- **Source and timing**: Hermit commit `bf7a83979fa41ea9b1605ff9c944a5fa06244544` (2026-11-10) adds the adapter, skill template, coordinator prompt, and Robosuite example. Key source paths were statically inspected; no experiments were run.
+- **Evidence status**: Third-party implementation source inspected; no independent performance reproduction.
 
 <a id="workflow"></a>
 

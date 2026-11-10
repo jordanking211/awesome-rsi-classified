@@ -43,7 +43,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **74 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **75 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -106,6 +106,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | EvoSkill v2 | [技能文件、可执行技能与工具库](#skills) | SKILL.md 与可选脚本；持久 evolver 会话和版本绑定轨迹 | 不训练模型权重 | 关键源码静态核查；无分数拒绝门禁 |
 | The Trinity | [技能文件、可执行技能与工具库](#skills) | 版本化能力模块：提示词与 JavaScript 函数；附评测前文本技能 | 所核查路径不训练模型权重 | 关键源码静态核查；本地更新无性能拒绝门禁 |
 | SkillOpt | [技能文件、可执行技能与工具库](#skills) | 对单份技能文档增删替换；保存最佳版本 | 执行模型和优化器模型均不更新权重 | 作者源码静态核查；按整体验证分数接受 |
+| Hermit（ASPIRE 适配） | [技能文件、可执行技能与工具库](#skills) | 共享机器人技能库中的 Markdown 条目；Evolver 按提案和验证结果更新 | 第三方 ASPIRE 适配；示例用 Codex/GLM 5.3 Flash 推理，不训练模型权重 | 固定提交源码静态核查；未复现实验 |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -467,6 +468,16 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **如何决定采用哪个版本**：训练器在选择集上运行候选技能。开启验证检查时，候选分数必须严格高于当前版本；平分也拒绝。训练器分别记录当前版本与历史最佳版本，并写出 `best_skill.md`。关闭检查后，训练器仍记录验证分数，却会直接采用候选版本。
 - **泛化与回归**：论文比较技能在不同模型、基准和 harness 上的迁移。代码按选择集的汇总分数接受更新，旧任务上的一次失败可能被其他任务的进步抵消。若某个旧场景必须保持通过，应在采用候选前单独重跑该场景，并让失败阻止采用。
 - **核查范围**：论文于 2026 年 5 月发布；作者仓库 11 月 4 日仍有实质代码修复。这里核查的是微软原版的离线训练器、文本补丁和验证决策，不涵盖 sleep 路径或 FlashRSI 的移植；未复现实验。
+
+#### Hermit（ASPIRE 适配）
+
+[原始论文](https://arxiv.org/abs/2607.00272) · [ASPIRE 作者仓库](https://github.com/NVlabs/ASPIRE) · [Hermit 第三方适配仓库](https://github.com/Infini-AI-Lab/hermit) · [适配说明](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/docs/methods/aspire.md) · [技能模板与校验器](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/adapter/templates/aspire/.hermit/adapter.yaml) · [共享技能库](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/adapter/templates/aspire/skills/README.md) · [Evolver 协调器](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/agent/evolver/methods/aspire/COORDINATOR.md) · [Evolver 代码](https://github.com/Infini-AI-Lab/hermit/blob/bf7a83979fa41ea9b1605ff9c944a5fa06244544/hermit/agent/evolver/methods/aspire/evolver.py)
+
+- **主要修改对象**：跨机器人任务共享的 Markdown 技能条目（`skills/*.md`）；协调器根据执行报告提出修订，并只把验证器从技能库与提案中重新解出的条目纳入库。任务 actor 另会生成当前任务的 Code-as-Policy 程序，但持续积累的主要产物是技能库。
+- **权重边界与来源**：这是 Hermit 对 ASPIRE 的第三方适配，不是 NVlabs 作者实现的同一套运行代码。检查路径通过 Codex（示例绑定 GLM 5.3 Flash）或 Claude Code 会话进行推理；没有训练 actor、Evolver 或目标模型权重的步骤。
+- **泛化与旧任务回归边界**：提案需要在当前任务的 verifier 行上达到至少 4/5 成功；配置另有最终技能库对全部任务重跑的阶段。前者不是全历史任务回归门禁，最终重跑也不等于每次修改都获逐任务接受保证；本次没有运行或复现这些实验。
+- **源码／时间核查**：Hermit 固定提交 `bf7a83979fa41ea9b1605ff9c944a5fa06244544`（2026-11-10）新增适配器、技能模板、协调提示和 Robosuite 示例。关键源码静态核查；未运行实验。
+- **证据状态**：第三方实现源码核查；无独立性能复现。
 
 <a id="workflow"></a>
 
