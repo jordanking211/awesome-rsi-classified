@@ -43,7 +43,7 @@
 
 ## 覆盖与核查方法
 
-- 收录 **75 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
+- 收录 **76 个方法条目、37 个评测与背景条目**，另列 **22 个相关方法与 2 篇实践文章**。
 - 同一仓库中的不同方法分开说明，仓库数量不与方法数量混算。
 - 对可定位实现，读取固定提交下的关键函数、编辑/写回位置、训练入口或候选执行代码。下文的“源码核查”表示关键静态路径检查，**不是完整代码审计或实验复现**。
 - 只下载/阅读源码，没有安装项目、执行其 agent、训练模型或复现性能。目录存在、README 宣称开源、发布模型权重，都不等于完整训练与搜索源码已公开。
@@ -107,6 +107,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | The Trinity | [技能文件、可执行技能与工具库](#skills) | 版本化能力模块：提示词与 JavaScript 函数；附评测前文本技能 | 所核查路径不训练模型权重 | 关键源码静态核查；本地更新无性能拒绝门禁 |
 | SkillOpt | [技能文件、可执行技能与工具库](#skills) | 对单份技能文档增删替换；保存最佳版本 | 执行模型和优化器模型均不更新权重 | 作者源码静态核查；按整体验证分数接受 |
 | Hermit（ASPIRE 适配） | [技能文件、可执行技能与工具库](#skills) | 共享机器人技能库中的 Markdown 条目；Evolver 按提案和验证结果更新 | 第三方 ASPIRE 适配；示例用 Codex/GLM 5.3 Flash 推理，不训练模型权重 | 固定提交源码静态核查；未复现实验 |
+| Hermes Agent | [技能文件、可执行技能与工具库](#skills) | Agent 创建／修订的 SKILL.md 与配套文件；curator 管理使用记录、状态与可恢复归档 | 面向用户提供的模型做推理；技能学习／curator 路径不训练模型权重 | 官方源码静态核查（v0.23.1）；无功能回归实验 |
 | ADAS / Meta Agent Search | [工作流、模块组合与图/控制器参数](#workflow) | 新 agent 的 forward() 实现代码 | 所核查 Meta Agent Search 调用固定模型生成代码 | 关键源码静态核查 |
 | AFlow | [工作流、模块组合与图/控制器参数](#workflow) | 工作流 graph.py 与节点提示词 | 工作流搜索路径不微调目标 LLM | 关键源码静态核查 |
 | GPTSwarm | [工作流、模块组合与图/控制器参数](#workflow) | 节点提示词 + 边连接概率/图参数 | 会梯度更新图结构参数；不等于更新基础 LLM 权重 | 关键源码静态核查 |
@@ -478,6 +479,16 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **泛化与旧任务回归边界**：提案需要在当前任务的 verifier 行上达到至少 4/5 成功；配置另有最终技能库对全部任务重跑的阶段。前者不是全历史任务回归门禁，最终重跑也不等于每次修改都获逐任务接受保证；本次没有运行或复现这些实验。
 - **源码／时间核查**：Hermit 固定提交 `bf7a83979fa41ea9b1605ff9c944a5fa06244544`（2026-11-10）新增适配器、技能模板、协调提示和 Robosuite 示例。关键源码静态核查；未运行实验。
 - **证据状态**：第三方实现源码核查；无独立性能复现。
+
+#### Hermes Agent
+
+[官方仓库](https://github.com/NousResearch/hermes-agent) · [v0.23.1 发布说明（2026-11-09）](https://github.com/NousResearch/hermes-agent/releases/tag/v0.23.1) · [技能写入工具](https://github.com/NousResearch/hermes-agent/blob/3b421578588243f920886e6fe79a6faa87ea026e/tools/skill_manager_tool.py) · [Curator 生命周期与整合](https://github.com/NousResearch/hermes-agent/blob/3b421578588243f920886e6fe79a6faa87ea026e/agent/curator.py) · [技能使用／来源记录](https://github.com/NousResearch/hermes-agent/blob/3b421578588243f920886e6fe79a6faa87ea026e/tools/skill_usage.py) · [备份与回滚](https://github.com/NousResearch/hermes-agent/blob/3b421578588243f920886e6fe79a6faa87ea026e/agent/curator_backup.py) · [技能系统文档](https://github.com/NousResearch/hermes-agent/blob/3b421578588243f920886e6fe79a6faa87ea026e/website/docs/user-guide/features/skills.md)
+
+- **主要修改对象**：Agent 管理的 `SKILL.md` 和配套文件。Agent 可将解出的非平凡流程、错误修复和用户纠正沉淀为技能；Curator 依据使用记录将技能标记过时、归档或整合。它会写入技能及生命周期元数据，不改模型权重。
+- **安全边界与阶段**：LLM 整合候选只包含 agent-created 技能；bundled 技能不会进入该 LLM 候选集，但启用 `prune_builtins` 时可由确定性闲置策略归档。pinned、锁定及 cron 引用技能受保护。默认按活动时间将技能标记 stale（14 天）或归档（30 天）；Curator 通过可恢复归档管理，不永久删除。LLM 整合可选且默认关闭；开启时先做技能树快照，评审 agent 仅获 `skills` 工具集，变更经过 `skill_manage` 账本。`skills.write_approval` 可将写入暂存供人工批准。
+- **模型与评测边界**：使用者配置的 LLM 和可选评审模型通过推理生成／整理技能；所查路径不训练这些模型的权重。代码含格式 linter、活动度策略和备份回滚，但没有技能行为的执行测试或旧任务分数门禁；可恢复归档和人工批准不能替代回归测试。
+- **来源、时间与核查范围**：固定官方版本 v0.23.1，发布于 2026-11-09；`agent/curator.py` 于 2026-11-08 仍有 curator 相关实质更新。核查的是技能写入、生命周期和备份关键路径；未运行 agent 或复现实验。项目其余功能不据此一并分类。
+- **证据状态**：官方实现关键源码静态核查；无技能效果或回归实验。
 
 <a id="workflow"></a>
 
