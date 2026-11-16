@@ -127,6 +127,7 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 | Hyperagents | [agent / harness / 优化器自身源码](#selfcode) | 任务 agent 和 meta-agent 的代码库 | 所核查路径通过模型工具调用改代码 | 关键源码静态核查 |
 | Ouroboros | [agent / harness / 优化器自身源码](#selfcode) | agent 核心源码及经过 review 的后继版本 | 核查演化机制是代码/提交更新 | 关键源码静态核查 |
 | Harness² | [agent / harness / 优化器自身源码](#selfcode) | 受限 harness 组件树：指令、skills/脚本、子 agent、hooks/plugins，并积累经验 | 推理时编辑组件；不训练目标模型或改进器权重 | 关键源码静态核查；baseline 不在最终选择池 |
+| AnyRSI (原 OpenRSI) | [agent / harness / 优化器自身源码](#selfcode) | 可版本化的 agent harness 代码；可选联动提示词、记忆、可执行技能与目标模型 checkpoint | 提案器可改 harness；权重训练是独立可选组件；gate/guard/评测划分不参与演化 | 官方源码静态核查（固定提交）；未复现近期实验 |
 | AntOmniEvo (Terminus-KIRA) | [agent / harness / 优化器自身源码](#selfcode) | Terminus-KIRA 的 agent 源码，并联修改技能/脚本 | 模型推理编辑文件，不训练权重 | 关键源码静态核查；分类限定示例路径 |
 | AlphaEvolve | [目标任务程序与算法](#program) | 问题求解算法/程序，例如数学构造和计算内核 | 原方法主要搜索程序；没有在此确认基础 LLM 训练 | 论文/说明；核心源码未核验 |
 | FunSearch | [目标任务程序与算法](#program) | 指定待演化函数的程序体 | 核查开源核心使用 LLM 采样与程序评分 | 关键源码静态核查 |
@@ -673,6 +674,16 @@ RSI 在此指 Recursive Self-Improvement。提示词优化、技能积累、自�
 - **模型与阶段**：推理时改进固定模型周围的 harness；所核查循环调用改进器和执行器，不训练目标模型或工程师/生成器权重。跨任务递归主要体现为累积 harness 与经验，不能据此宣称优化器自身实现也在演化。
 - **泛化与回归边界**：论文报告 WorkBuddy、JobBench、LAB 上的评测；经验库提供跨任务复用机制，但不是跨领域或旧场景不退化保证。`selection_pool` 明确只纳入最终候选，排除 baseline 且不允许 abstention；所核查选择路径没有旧任务测试集逐项回归门禁。用于新场景 skills 改进时，仍需自行加入保留基线、旧任务回放和拒绝劣化候选的规则。
 - **来源、活跃度与核查范围**：作者 Google Research 实现，代码发布提交为 2026-10-08，论文首次提交为 2026-10-09；2026-10-09 有后续代码提交，固定版本的 2026-10-14 更新仅修正文献链接。2026-10-19 静态核查上述核心路径，未运行或复现性能；官方 README 提醒默认执行环境的网络访问可能造成评测信息泄漏，结果解读需考虑隔离设置。
+
+#### AnyRSI (原 OpenRSI)
+
+[官方仓库](https://github.com/TraceLite-AI/openrsi) · [固定提交](https://github.com/TraceLite-AI/openrsi/commit/294012431f8743a86640c59d110618701d52adf5) · [HarnessEvolvable](https://github.com/TraceLite-AI/openrsi/blob/294012431f8743a86640c59d110618701d52adf5/components/harness/anyrsi_harness/__init__.py) · [HoldoutGate](https://github.com/TraceLite-AI/openrsi/blob/294012431f8743a86640c59d110618701d52adf5/components/gate/anyrsi_gate/__init__.py) · [PolicyGuard](https://github.com/TraceLite-AI/openrsi/blob/294012431f8743a86640c59d110618701d52adf5/components/guard/anyrsi_guard/__init__.py) · [运行时循环](https://github.com/TraceLite-AI/openrsi/blob/294012431f8743a86640c59d110618701d52adf5/runtime/anyrsi_runtime/loop.py) · [RSIHub 代码与权重示例说明](https://github.com/TraceLite-AI/openrsi/blob/294012431f8743a86640c59d110618701d52adf5/examples/rsihub_weights/README.md)
+
+- **主要修改对象**：agent / harness / 优化器自身源码。`HarnessEvolvable` 把 agent 仓库快照为 Git 版本，以受限文件范围内的写入、删除或 unified diff 更新 agent/harness；同一框架还可把 prompt、memory、可执行 skill 和模型 checkpoint 配成额外可进化资产。具体配置决定哪些资产会改，不能据框架能力推断某次运行都改了它们。
+- **评测闭环与护栏**：runtime 只把 train 轨迹交给归因器和提案器，候选在 holdout 上评分，sealed/final 集留作最终评估；`PolicyGuard` 检查 patch 内容和受保护路径。`HoldoutGate` 可要求总分提升，并按配置增加逐题或逐环境格 no-regression 条件。逐题门槛默认是可选项，保护范围也仅限配置的 gate 题，不保证所有历史任务或分布外场景永不退化。gate、guard、sealed tests 与预算本身不演化。
+- **模型与训练边界**：普通 harness/提示词/技能提案通过模型推理生成，不等于训练提案器权重。权重组件则可从训练轨迹构造数据并调用内置训练器或 verl 等外部训练命令，训练的是目标 agent 的模型 checkpoint。仓库的 RSIHub 配置示例写有 Qwen3-32B/verl SFT 方案，但其 README 明确标为尚未在真实硬件上运行；另有 Qwen2.5-0.5B CPU 小模型运行报告。二者不可混为已验证的大规模联合训练结果。
+- **泛化与回归证据**：官方 README 记录 2026-11 的 toy/模型实验，也记录方向引导在 gpt-4o-mini fresh-task 分数从 0.58 降至 0.40–0.44（9 次运行均下降），而在 gpt-6.1-terra 上无明显差异，说明提示策略效果依赖模型与任务。Terminal-Bench 一次记录因大量 verifier 未实际启动而无法支持方法效果结论；后续新增了不可评分样本处理和 gate-task 预检。仓库声明的 382 个测试属于作者 CI 证据，本条未运行测试或复现结果。
+- **源码与时间边界**：项目在 2026-11 从 OpenRSI 更名为 AnyRSI。2026-11-16 固定主分支提交 `294012431f8743a86640c59d110618701d52adf5` 静态检查上述实现与示例；仅依据官方仓库及 README，没有据此声称已有论文、独立性能验证或普遍不退化保证。
 
 #### AntOmniEvo (Terminus-KIRA)
 
